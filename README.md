@@ -13,3 +13,6 @@ INSERT INTO `achievement_reward` (`entry`, `title_A`, `title_H`, `item`, `sender
 此代码我只使用debian编译过，对于win的编译环境并不熟悉
 
 有什么问题可以在此仓库留言，我会尽量的找老外协助解决
+
+地图文件及DBC
+https://cloud.189.cn/t/MJ7V3enQR36j（访问码：ih8j）
