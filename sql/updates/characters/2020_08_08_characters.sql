@@ -1,0 +1,1 @@
+ALTER TABLE `characters` CHANGE COLUMN `extra_flags` `extra_flags` INT UNSIGNED NOT NULL DEFAULT '0' AFTER `transguid`;

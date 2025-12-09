@@ -1,0 +1,22 @@
+-- DB/NPC: Goblin Commoner - remove duplicate spawns
+DELETE FROM `creature` WHERE `guid` IN (91584, 93639, 93734);
+DELETE FROM `creature` WHERE `guid` IN (91583, 93610, 93695);
+DELETE FROM `creature` WHERE `guid` IN (240330, 244376);
+DELETE FROM `creature` WHERE `guid` IN (240336, 244396);
+DELETE FROM `creature` WHERE `guid` IN (91582, 93587,93913);
+DELETE FROM `creature` WHERE `guid` IN (92568, 93764);
+DELETE FROM `creature` WHERE `guid` IN (93652, 93763);
+DELETE FROM `creature` WHERE `guid` IN (93646, 93762);
+DELETE FROM `creature` WHERE `guid` IN (91763);
+DELETE FROM `creature` WHERE `guid` IN (9176);
+DELETE FROM `creature` WHERE `guid` IN (240329, 244375);
+DELETE FROM `creature` WHERE `guid` IN (240335, 244395);
+DELETE FROM `creature` WHERE `guid` IN (91765, 91764);
+DELETE FROM `creature` WHERE `guid` IN (91761, 240331, 244377);
+DELETE FROM `creature` WHERE `guid` IN (240337, 244397);
+DELETE FROM `creature` WHERE `guid` IN (91706, 240328, 244374);
+DELETE FROM `creature` WHERE `guid` IN (240334, 244394, 91750);
+DELETE FROM `creature` WHERE `guid` IN (91751, 91707, 91749);
+DELETE FROM `creature` WHERE `guid` IN (240332, 244378, 244851);
+DELETE FROM `creature` WHERE `guid` IN (244398, 240333, 244393);
+DELETE FROM `creature` WHERE `guid` IN (240327, 244373);

@@ -1,0 +1,32 @@
+DROP TABLE IF EXISTS `mythic_companion_data`;
+CREATE TABLE IF NOT EXISTS `mythic_companion_data`
+(
+	`PlayerGUID` INT(10) UNSIGNED NOT NULL DEFAULT 0 PRIMARY KEY,
+	`CompanionExp` INT UNSIGNED NOT NULL DEFAULT 0,
+	`CompanionLevel` INT UNSIGNED NOT NULL DEFAULT 1,
+	-- companion customization
+    `Race` INT UNSIGNED NOT NULL DEFAULT 7,
+    `Gender` BOOL DEFAULT FALSE COMMENT 'false for male, truth for female',
+    -- equipment slots
+    `Head` INT UNSIGNED NOT NULL DEFAULT 10630,
+    `Shoulders` INT UNSIGNED NOT NULL DEFAULT 34107,
+    `Shirt` INT UNSIGNED NOT NULL DEFAULT 6384,
+    `Chest` INT UNSIGNED NOT NULL DEFAULT 795,
+    `Waist` INT UNSIGNED NOT NULL DEFAULT 3602,
+    `Pants` INT UNSIGNED NOT NULL DEFAULT 794,
+    `Boots` INT UNSIGNED NOT NULL DEFAULT 792,
+    `Wrists` INT UNSIGNED NOT NULL DEFAULT 3603,
+    `Hands` INT UNSIGNED NOT NULL DEFAULT 793,
+    `Cloak` INT UNSIGNED NOT NULL DEFAULT 4798,
+    `MainHand` INT UNSIGNED NOT NULL DEFAULT 2495,
+    `OffHand` INT UNSIGNED NOT NULL DEFAULT 0,
+    `rangedWeapon` INT UNSIGNED NOT NULL DEFAULT 0,
+	-- companion tools, controls whether player bought it or not
+	`ToolBank` BOOL DEFAULT FALSE,
+	`ToolGuildBank` BOOL DEFAULT FALSE,
+	`ToolAuctionHouse` BOOL DEFAULT FALSE,
+	`ToolMassRess` BOOL DEFAULT FALSE,
+	-- Buyable races
+	`BoughtGoblinRace` BOOL DEFAULT FALSE,
+	`BoughtTaunkaRace` BOOL DEFAULT FALSE
+) Engine=InnoDB DEFAULT CHARSET=utf8;

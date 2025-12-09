@@ -1,0 +1,1 @@
+UPDATE `creature_loot_template` SET `item` = 49426 WHERE `entry` IN (39946,39864,39947,39948,39863,39944,39945) AND `item` IN (47241, 45624, 40753, 40752);

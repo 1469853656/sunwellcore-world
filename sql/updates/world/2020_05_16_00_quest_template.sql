@@ -1,0 +1,1 @@
+UPDATE `quest_template` SET `RewardXPId` = 0 WHERE `Id` IN (24788, 24789);

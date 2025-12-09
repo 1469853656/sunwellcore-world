@@ -1,0 +1,1 @@
+UPDATE `gameobject_template` SET `ScriptName`='go_mythic_quest_obelisk' WHERE  `entry`=302050;

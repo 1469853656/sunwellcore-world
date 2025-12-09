@@ -1,0 +1,1 @@
+INSERT INTO `creature_queststarter` (`id`, `quest`) VALUES (27990, 26013);

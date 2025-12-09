@@ -1,0 +1,1 @@
+DELETE FROM `spell_area` WHERE `area` = 4812 AND `spell` IN (73816, 73762);

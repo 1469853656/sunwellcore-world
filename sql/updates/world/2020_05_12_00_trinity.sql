@@ -1,0 +1,188 @@
+-- DB/Loot: Enraged Foulweald shouldn't have loot table https://github.com/TrinityCore/TrinityCore/commit/b518457604a534162508bd4c7a192e995e88ec38
+-- DB/Loot: Add references for Level 70 Darkmoon Cards (5-8) & Books and use them in TK & SSC https://github.com/TrinityCore/TrinityCore/commit/0b60b482730f03399104b64a69a14598cf137edc
+-- DB/Loot: Add more items for Crimson Hand Battle Mage https://github.com/TrinityCore/TrinityCore/commit/63b1c740941e3b6af537b27024b12982064eddfa
+-- DB/loot: Fix some Azjol Nerub loots and skinning https://github.com/TrinityCore/TrinityCore/commit/ae9646641f6cdb7624398073ccc086ac3ee5ba72
+-- DB/Spawn: Fix some under-map creature and gobs https://github.com/TrinityCore/TrinityCore/commit/4e4a999e49fc7a9d0b55e19bd77fffd59683621a
+-- DB/Loot: Remove Motes of Shadow from nearly all demons Patch 2.1.0 (2007-05-22): Motes of Shadow now primarily drop from void creatures and have been removed from nearly all demons. https://github.com/TrinityCore/TrinityCore/commit/2384d1d8e4fb667ac6d7103c4cf465a97b21a084
+-- DB/Loot: Petrified Band Wiki: This item is a zone drop from the following mobs in Dire Maul: Ironbark Protector, Petrified Guardian, Petrified Treant https://github.com/TrinityCore/TrinityCore/commit/d46cc74f0051c0a776d19293ea758c5512eeaac0
+DELETE FROM `creature_loot_template` WHERE `Entry` = 12921;
+UPDATE `creature_template` SET `lootid` = 0 WHERE `entry` = 12921;
+
+SET @ENTRY := 34118;
+DELETE FROM `reference_loot_template` WHERE `Entry` IN (@ENTRY,@ENTRY+1);
+INSERT INTO `reference_loot_template` (`Entry`,`Item`,`ChanceOrQuestChance`,`LootMode`,`GroupId`,`MinCount`,`MaxCount`) VALUES
+(@ENTRY,31883,0,1,1,1,1),
+(@ENTRY,31884,0,1,1,1,1),
+(@ENTRY,31886,0,1,1,1,1),
+(@ENTRY,31887,0,1,1,1,1),
+(@ENTRY,31893,0,1,1,1,1),
+(@ENTRY,31894,0,1,1,1,1),
+(@ENTRY,31896,0,1,1,1,1),
+(@ENTRY,31898,0,1,1,1,1),
+(@ENTRY,31902,0,1,1,1,1),
+(@ENTRY,31903,0,1,1,1,1),
+(@ENTRY,31905,0,1,1,1,1),
+(@ENTRY,31906,0,1,1,1,1),
+(@ENTRY,31911,0,1,1,1,1),
+(@ENTRY,31912,0,1,1,1,1),
+(@ENTRY,31915,0,1,1,1,1),
+(@ENTRY,31916,0,1,1,1,1),
+(@ENTRY+1,22146,0,1,1,1,1),
+(@ENTRY+1,22153,0,1,1,1,1),
+(@ENTRY+1,29549,0,1,1,1,1),
+(@ENTRY+1,29550,0,1,1,1,1),
+(@ENTRY+1,31501,0,1,1,1,1),
+(@ENTRY+1,31837,0,1,1,1,1);
+
+DELETE FROM `creature_loot_template` WHERE `Entry` IN (20031,20032,20033,20034,20035,20036,20037,20038,20039,20040,20041,20042,20043,20044,20045,20046,20047,20048,20049,20050,20052,21218,21220,21221,21224,21225,21226,21227,21228,21229,21230,21231,21232,21246,21251,21263,21298,21299,21301,21339,21863) AND ((`Item` IN (31883,31884,31886,31887,31893,31894,31896,31898,31902,31903,31905,31906,31911,31912,31915,31916,22146,22153,29549,29550,31501,31837)) OR `MinCountOrRef` IN (-@ENTRY,-(@ENTRY+1)));
+INSERT INTO `creature_loot_template` (`Entry`,`Item`,`MinCountOrRef`,`ChanceOrQuestChance`,`LootMode`,`GroupId`,`MaxCount`) VALUES
+(20031,@ENTRY,-@ENTRY,0.01,1,0,1),
+(20032,@ENTRY,-@ENTRY,0.01,1,0,1),
+(20033,@ENTRY,-@ENTRY,0.01,1,0,1),
+(20034,@ENTRY,-@ENTRY,0.01,1,0,1),
+(20035,@ENTRY,-@ENTRY,0.01,1,0,1),
+(20036,@ENTRY,-@ENTRY,0.01,1,0,1),
+(20037,@ENTRY,-@ENTRY,0.01,1,0,1),
+(20038,@ENTRY,-@ENTRY,0.01,1,0,1),
+(20039,@ENTRY,-@ENTRY,0.01,1,0,1),
+(20040,@ENTRY,-@ENTRY,0.01,1,0,1),
+(20041,@ENTRY,-@ENTRY,0.01,1,0,1),
+(20042,@ENTRY,-@ENTRY,0.01,1,0,1),
+(20043,@ENTRY,-@ENTRY,0.01,1,0,1),
+(20044,@ENTRY,-@ENTRY,0.01,1,0,1),
+(20045,@ENTRY,-@ENTRY,0.01,1,0,1),
+(20046,@ENTRY,-@ENTRY,0.01,1,0,1),
+(20047,@ENTRY,-@ENTRY,0.01,1,0,1),
+(20048,@ENTRY,-@ENTRY,0.01,1,0,1),
+(20049,@ENTRY,-@ENTRY,0.01,1,0,1),
+(20050,@ENTRY,-@ENTRY,0.01,1,0,1),
+(20052,@ENTRY,-@ENTRY,0.01,1,0,1),
+(21218,@ENTRY,-@ENTRY,0.01,1,0,1),
+(21220,@ENTRY,-@ENTRY,0.01,1,0,1),
+(21221,@ENTRY,-@ENTRY,0.01,1,0,1),
+(21224,@ENTRY,-@ENTRY,0.01,1,0,1),
+(21225,@ENTRY,-@ENTRY,0.01,1,0,1),
+(21226,@ENTRY,-@ENTRY,0.01,1,0,1),
+(21227,@ENTRY,-@ENTRY,0.01,1,0,1),
+(21228,@ENTRY,-@ENTRY,0.01,1,0,1),
+(21229,@ENTRY,-@ENTRY,0.01,1,0,1),
+(21230,@ENTRY,-@ENTRY,0.01,1,0,1),
+(21231,@ENTRY,-@ENTRY,0.01,1,0,1),
+(21232,@ENTRY,-@ENTRY,0.01,1,0,1),
+(21246,@ENTRY,-@ENTRY,0.01,1,0,1),
+(21251,@ENTRY,-@ENTRY,0.01,1,0,1),
+(21263,@ENTRY,-@ENTRY,0.01,1,0,1),
+(21298,@ENTRY,-@ENTRY,0.01,1,0,1),
+(21299,@ENTRY,-@ENTRY,0.01,1,0,1),
+(21301,@ENTRY,-@ENTRY,0.01,1,0,1),
+(21339,@ENTRY,-@ENTRY,0.01,1,0,1),
+(21863,@ENTRY,-@ENTRY,0.01,1,0,1),
+(20031,@ENTRY+1,-(@ENTRY+1),0.5,1,0,1),
+(20032,@ENTRY+1,-(@ENTRY+1),0.5,1,0,1),
+(20033,@ENTRY+1,-(@ENTRY+1),0.5,1,0,1),
+(20034,@ENTRY+1,-(@ENTRY+1),0.5,1,0,1),
+(20035,@ENTRY+1,-(@ENTRY+1),0.5,1,0,1),
+(20036,@ENTRY+1,-(@ENTRY+1),0.5,1,0,1),
+(20037,@ENTRY+1,-(@ENTRY+1),0.5,1,0,1),
+(20038,@ENTRY+1,-(@ENTRY+1),0.5,1,0,1),
+(20039,@ENTRY+1,-(@ENTRY+1),0.5,1,0,1),
+(20040,@ENTRY+1,-(@ENTRY+1),0.5,1,0,1),
+(20041,@ENTRY+1,-(@ENTRY+1),0.5,1,0,1),
+(20042,@ENTRY+1,-(@ENTRY+1),0.5,1,0,1),
+(20043,@ENTRY+1,-(@ENTRY+1),0.5,1,0,1),
+(20044,@ENTRY+1,-(@ENTRY+1),0.5,1,0,1),
+(20045,@ENTRY+1,-(@ENTRY+1),0.5,1,0,1),
+(20046,@ENTRY+1,-(@ENTRY+1),0.5,1,0,1),
+(20047,@ENTRY+1,-(@ENTRY+1),0.5,1,0,1),
+(20048,@ENTRY+1,-(@ENTRY+1),0.5,1,0,1),
+(20049,@ENTRY+1,-(@ENTRY+1),0.5,1,0,1),
+(20050,@ENTRY+1,-(@ENTRY+1),0.5,1,0,1),
+(20052,@ENTRY+1,-(@ENTRY+1),0.5,1,0,1),
+(21218,@ENTRY+1,-(@ENTRY+1),0.5,1,0,1),
+(21220,@ENTRY+1,-(@ENTRY+1),0.5,1,0,1),
+(21221,@ENTRY+1,-(@ENTRY+1),0.5,1,0,1),
+(21224,@ENTRY+1,-(@ENTRY+1),0.5,1,0,1),
+(21225,@ENTRY+1,-(@ENTRY+1),0.5,1,0,1),
+(21226,@ENTRY+1,-(@ENTRY+1),0.5,1,0,1),
+(21227,@ENTRY+1,-(@ENTRY+1),0.5,1,0,1),
+(21228,@ENTRY+1,-(@ENTRY+1),0.5,1,0,1),
+(21229,@ENTRY+1,-(@ENTRY+1),0.5,1,0,1),
+(21230,@ENTRY+1,-(@ENTRY+1),0.5,1,0,1),
+(21231,@ENTRY+1,-(@ENTRY+1),0.5,1,0,1),
+(21232,@ENTRY+1,-(@ENTRY+1),0.5,1,0,1),
+(21246,@ENTRY+1,-(@ENTRY+1),0.5,1,0,1),
+(21251,@ENTRY+1,-(@ENTRY+1),0.5,1,0,1),
+(21263,@ENTRY+1,-(@ENTRY+1),0.5,1,0,1),
+(21298,@ENTRY+1,-(@ENTRY+1),0.5,1,0,1),
+(21299,@ENTRY+1,-(@ENTRY+1),0.5,1,0,1),
+(21301,@ENTRY+1,-(@ENTRY+1),0.5,1,0,1),
+(21339,@ENTRY+1,-(@ENTRY+1),0.5,1,0,1),
+(21863,@ENTRY+1,-(@ENTRY+1),0.5,1,0,1);
+
+UPDATE `creature_template` SET `lootid` = 20047 WHERE `entry` = 20047;
+DELETE FROM `creature_loot_template` WHERE `entry` = 20047;
+INSERT INTO `creature_loot_template` VALUES 
+(20047, 21877, 17.8, 1, 0, 1, 3),
+(20047, 22153, 0.15, 1, 0, 1, 1),
+(20047, 24001, 5, 1, 1, -24001, 1),
+(20047, 24002, 5, 1, 1, -24002, 1),
+(20047, 24011, 1, 1, 1, -24011, 1),
+(20047, 24012, 0.5, 1, 1, -24012, 1),
+(20047, 24013, 1, 1, 1, -24013, 1),
+(20047, 24014, 0.5, 1, 1, -24014, 1),
+(20047, 24035, 2, 1, 1, -24035, 1),
+(20047, 24092, 0.5, 1, 1, -24092, 1),
+(20047, 27855, 5.16, 1, 0, 1, 1),
+(20047, 27860, 2.39, 1, 0, 1, 1),
+(20047, 29549, 0.22, 1, 0, 1, 1),
+(20047, 29550, 0.22, 1, 0, 1, 1),
+(20047, 30024, 1.57, 1, 0, 1, 1),
+(20047, 30026, 1.35, 1, 0, 1, 1),
+(20047, 30029, 1.94, 1, 0, 1, 1),
+(20047, 30030, 1.27, 1, 0, 1, 1),
+(20047, 30183, 4.64, 1, 0, 1, 1),
+(20047, 30280, 0.63, 1, 0, 1, 1),
+(20047, 30281, 1.89, 1, 0, 1, 1),
+(20047, 30282, 0.22, 1, 0, 1, 1),
+(20047, 30301, 2.21, 1, 0, 1, 1),
+(20047, 30302, 0.32, 1, 0, 1, 1),
+(20047, 30303, 1.26, 1, 0, 1, 1),
+(20047, 30304, 1.58, 1, 0, 1, 1),
+(20047, 30305, 0.15, 1, 0, 1, 1),
+(20047, 30306, 0.22, 1, 0, 1, 1),
+(20047, 30307, 0.07, 1, 0, 1, 1),
+(20047, 30308, 0.07, 1, 0, 1, 1),
+(20047, 30321, 1.89, 1, 0, 1, 1),
+(20047, 30322, 0.95, 1, 0, 1, 1),
+(20047, 30323, 0.15, 1, 0, 1, 1),
+(20047, 31837, 0.07, 1, 0, 1, 1),
+(20047, 31905, 0.07, 1, 0, 1, 1),
+(20047, 32897, 8.83, 1, 0, 1, 1),
+(20047, 32902, 10.4, 1, 0, 1, 3),
+(20047, 32905, 2.77, 1, 0, 1, 3);
+
+-- Copied from Crimson Hand Centurion
+DELETE FROM `creature_loot_template` WHERE `Entry` = 20047 AND `Item` IN (21877,24093,27855,27860,30183,32897,32902,32905);
+INSERT INTO `creature_loot_template` (`Entry`,`Item`,`MinCountOrRef`,`ChanceOrQuestChance`,`LootMode`,`GroupId`,`MaxCount`) VALUES
+(20047,21877,2,21.31,1,0,3),
+(20047,24093,-24093,0.5,1,1,1),
+(20047,27855,1,5.13,1,0,1),
+(20047,27860,1,2.88,1,0,1),
+(20047,30183,1,4.14,1,0,1),
+(20047,32897,1,8.9,1,0,1),
+(20047,32902,1,10.68,1,0,3),
+(20047,32905,1,4.24,1,0,3);
+
+UPDATE `creature_template` SET `skinloot` = 70205 WHERE `entry` IN (31591,31592,31599,31604,31605,31606,31607,31608,31609,31610,31611,31612,31615,31616,31617);
+
+UPDATE `gameobject` SET `position_z`=219.7 WHERE `guid` IN (160660,160760);
+UPDATE `creature` SET `position_z`=219.50451 WHERE `guid` IN (110729);
+
+DELETE FROM `creature_loot_template` WHERE `Item` = 22577 AND `Entry` IN (16461,16539,16943,16944,16945,16952,17151,17152,17400,18033,18535,18536,18567,18660,18661,18695,18796,18848,19231,19511,19512,19712,19713,19716,19738,19740,19744,19747,19754,19755,19756,19757,19759,19760,19799,19800,19801,19802,19843,19847,19852,19853,19960,19961,19963,19971,19973,19978,19979,19980,20052,20138,20141,20215,20326,20394,20404,20427,20557,20680,20683,20800,20801,20803,20867,20868,20881,20882,20883,20887,20901,20902,20905,20928,20929,20930,21021,21102,21108,21287,21300,21309,21314,21337,21499,21500,21501,21506,21519,21520,21656,21808,21827,21923,21963,22195,22201,22202,22204,22283,22289,22291,22295,22297,22301,22302,22303,22325,22327,22357,22392);
+
+DELETE FROM `reference_loot_template` WHERE `Entry` = 24016 AND `Item` = 18343;
+DELETE FROM `creature_loot_template` WHERE `Item` = 18343;
+INSERT INTO `creature_loot_template` (`Entry`,`Item`,`ChanceOrQuestChance`,`LootMode`,`GroupId`,`MinCountOrRef`,`MaxCount`) VALUES
+(11458,18343,0.5,1,0,1,1),
+(11459,18343,0.5,1,0,1,1),
+(14303,18343,0.5,1,0,1,1);

@@ -1,0 +1,32 @@
+function(CollectSourceFiles dir out)
+  list(FIND ARGN "${dir}" IS_EXCLUDED)
+  if(IS_EXCLUDED EQUAL -1)
+    file(GLOB COLLECTED_SOURCES
+      ${dir}/*.cpp
+      ${dir}/*.h
+      ${dir}/*.hpp)
+    list(APPEND ${out} ${COLLECTED_SOURCES})
+
+    file(GLOB SUB_DIRECTORIES ${dir}/*)
+    foreach(SUB_DIRECTORY ${SUB_DIRECTORIES})
+      if (IS_DIRECTORY ${SUB_DIRECTORY})
+        CollectSourceFiles("${SUB_DIRECTORY}" "${out}" "${ARGN}")
+      endif()
+    endforeach()
+    set(${out} ${${out}} PARENT_SCOPE)
+  endif()
+endfunction()
+
+function(CollectIncludeDirectories dir out)
+  list(FIND ARGN "${dir}" IS_EXCLUDED)
+  if(IS_EXCLUDED EQUAL -1)
+    list(APPEND ${out} ${dir})
+    file(GLOB SUB_DIRECTORIES ${dir}/*)
+    foreach(SUB_DIRECTORY ${SUB_DIRECTORIES})
+      if (IS_DIRECTORY ${SUB_DIRECTORY})
+        CollectIncludeDirectories("${SUB_DIRECTORY}" "${out}" "${ARGN}")
+      endif()
+    endforeach()
+    set(${out} ${${out}} PARENT_SCOPE)
+  endif()
+endfunction()

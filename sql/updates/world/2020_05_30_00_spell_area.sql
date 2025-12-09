@@ -1,0 +1,1 @@
+DELETE FROM `spell_area` WHERE  `spell`=57940 AND `area`=480;

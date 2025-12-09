@@ -1,0 +1,16 @@
+DELETE FROM `npc_vendor` WHERE `entry` = 35790 AND `item` = 45624;
+INSERT INTO `npc_vendor` VALUES 
+(35790, 0, 45624, 0, 0, 2707);
+
+SET @NPC = 220000;
+DELETE FROM `npc_vendor` WHERE `entry` = @NPC AND `item` IN (42588,42583,42578,42852,42614,42620,42607,42602,42597);
+INSERT INTO `npc_vendor` VALUES
+(@NPC, 0, 42588, 0, 0, 2257),
+(@NPC, 0, 42583, 0, 0, 2257),
+(@NPC, 0, 42578, 0, 0, 2257),
+(@NPC, 0, 42852, 0, 0, 2257),
+(@NPC, 0, 42614, 0, 0, 2257),
+(@NPC, 0, 42620, 0, 0, 2257),
+(@NPC, 0, 42607, 0, 0, 2257),
+(@NPC, 0, 42602, 0, 0, 2257),
+(@NPC, 0, 42597, 0, 0, 2257);

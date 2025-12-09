@@ -1,0 +1,46 @@
+
+#ifndef TRINITY_MAP_INSTANCED_H
+#define TRINITY_MAP_INSTANCED_H
+
+#include "Map.h"
+//#include "InstanceSaveMgr.h"
+#include "DBCEnums.h"
+
+class MapInstanced : public Map
+{
+    friend class MapManager;
+
+public:
+    typedef std::unordered_map<uint32, Map*> InstancedMaps;
+
+    MapInstanced(uint32 id);
+    ~MapInstanced() {}
+
+    // functions overwrite Map versions
+    void Update(const uint32 t_diff, const uint32 s_diff, bool thread = true) override;
+    ;
+
+    void CleanupInstances(uint32 t_diff, uint32 s_diff);
+    void DelayedUpdate(const uint32 diff) override;
+    //void RelocationNotify();
+    void UnloadAll() override;
+    bool CanEnter(Player* player, bool loginCheck = false) override;
+
+    Map* CreateInstanceForPlayer(const uint32 mapId, Player* player);
+    Map* FindInstanceMap(uint32 instanceId) const
+    {
+        InstancedMaps::const_iterator i = m_InstancedMaps.find(instanceId);
+        return (i == m_InstancedMaps.end() ? nullptr : i->second);
+    }
+    bool DestroyInstance(InstancedMaps::iterator& itr);
+
+    InstancedMaps& GetInstancedMaps() { return m_InstancedMaps; }
+    virtual void InitVisibilityDistance() override;
+
+private:
+    InstanceMap* CreateInstance(uint32 InstanceId, InstanceSave* save, Difficulty difficulty, bool mythicInstance = false);
+    BattlegroundMap* CreateBattleground(uint32 InstanceId, Battleground* bg);
+
+    InstancedMaps m_InstancedMaps;
+};
+#endif

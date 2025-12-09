@@ -1,0 +1,2 @@
+-- DB/Loot: Runecaster's Mantle - should not drop from normal instances https://github.com/SunwellTracker/issues/issues/2804
+DELETE FROM `creature_loot_template` WHERE `item` = 37196 AND `entry` IN (24069,24071,24084,24085);

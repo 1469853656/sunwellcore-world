@@ -1,0 +1,421 @@
+
+
+/* ScriptData
+SDName: Feralas
+SD%Complete: 100
+SDComment: Quest support: 3520, 2767, Special vendor Gregan Brewspewer
+SDCategory: Feralas
+EndScriptData */
+
+#include "ScriptMgr.h"
+#include "ScriptedCreature.h"
+#include "ScriptedEscortAI.h"
+#include "ScriptedGossip.h"
+#include "SpellScript.h"
+#include "Player.h"
+#include "WorldSession.h"
+
+/*######
+## npc_gregan_brewspewer
+######*/
+
+#define GOSSIP_HELLO "Buy somethin', will ya?"
+
+class npc_gregan_brewspewer : public CreatureScript
+{
+public:
+    npc_gregan_brewspewer()
+        : CreatureScript("npc_gregan_brewspewer")
+    {
+    }
+
+    bool OnGossipSelect(Player* player, Creature* creature, uint32 /*sender*/, uint32 action) override
+    {
+        player->PlayerTalkClass->ClearMenus();
+        if (action == GOSSIP_ACTION_INFO_DEF + 1)
+        {
+            player->ADD_GOSSIP_ITEM(GOSSIP_ICON_VENDOR, GOSSIP_TEXT_BROWSE_GOODS, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_TRADE);
+            player->SEND_GOSSIP_MENU(2434, creature->GetGUID());
+        }
+        if (action == GOSSIP_ACTION_TRADE)
+            player->GetSession()->SendListInventory(creature->GetGUID());
+        return true;
+    }
+
+    bool OnGossipHello(Player* player, Creature* creature) override
+    {
+        if (creature->IsQuestGiver())
+            player->PrepareQuestMenu(creature->GetGUID());
+
+        if (creature->IsVendor() && player->GetQuestStatus(3909) == QUEST_STATUS_INCOMPLETE)
+            player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, GOSSIP_HELLO, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 1);
+
+        player->SEND_GOSSIP_MENU(2433, creature->GetGUID());
+        return true;
+    }
+};
+
+/*######
+## npc_oox22fe
+######*/
+
+enum OOX
+{
+    SAY_OOX_START  = 0,
+    SAY_OOX_AGGRO  = 1,
+    SAY_OOX_AMBUSH = 2,
+    SAY_OOX_END    = 3,
+
+    NPC_YETI           = 7848,
+    NPC_GORILLA        = 5260,
+    NPC_WOODPAW_REAVER = 5255,
+    NPC_WOODPAW_BRUTE  = 5253,
+    NPC_WOODPAW_ALPHA  = 5258,
+    NPC_WOODPAW_MYSTIC = 5254,
+
+    QUEST_RESCUE_OOX22FE = 2767,
+    FACTION_ESCORTEE_A   = 774,
+    FACTION_ESCORTEE_H   = 775
+};
+
+class npc_oox22fe : public CreatureScript
+{
+public:
+    npc_oox22fe()
+        : CreatureScript("npc_oox22fe")
+    {
+    }
+
+    bool OnQuestAccept(Player* player, Creature* creature, const Quest* quest) override
+    {
+        if (quest->GetQuestId() == QUEST_RESCUE_OOX22FE)
+        {
+            creature->AI()->Talk(SAY_OOX_START);
+            //change that the npc is not lying dead on the ground
+            creature->SetStandState(UNIT_STAND_STATE_STAND);
+
+            if (player->GetTeam(CF_DENY) == TEAM_ALLIANCE)
+                creature->setFaction(FACTION_ESCORTEE_A);
+
+            if (player->GetTeam(CF_DENY) == TEAM_HORDE)
+                creature->setFaction(FACTION_ESCORTEE_H);
+
+            if (npc_escortAI* pEscortAI = CAST_AI(npc_oox22fe::npc_oox22feAI, creature->AI()))
+                pEscortAI->Start(true, false, player->GetGUID());
+        }
+        return true;
+    }
+
+    CreatureAI* GetAI(Creature* creature) const override
+    {
+        return new npc_oox22feAI(creature);
+    }
+
+    struct npc_oox22feAI : public npc_escortAI
+    {
+        npc_oox22feAI(Creature* creature)
+            : npc_escortAI(creature)
+        {
+        }
+
+        void WaypointReached(uint32 waypointId) override
+        {
+            switch (waypointId)
+            {
+                // First Ambush(3 Yetis)
+                case 11:
+                    Talk(SAY_OOX_AMBUSH);
+                    me->SummonCreature(NPC_YETI, -4841.01f, 1593.91f, 73.42f, 3.98f, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 10000);
+                    me->SummonCreature(NPC_YETI, -4837.61f, 1568.58f, 78.21f, 3.13f, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 10000);
+                    me->SummonCreature(NPC_YETI, -4841.89f, 1569.95f, 76.53f, 0.68f, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 10000);
+                    break;
+                case 15:
+                    Talk(SAY_OOX_END);
+                    // Award quest credit
+                    if (Player* player = GetPlayerForEscort())
+                        player->GroupEventHappens(QUEST_RESCUE_OOX22FE, me);
+                    me->DespawnOrUnsummon(2000);
+                    break;
+            }
+        }
+
+        void Reset() override
+        {
+            if (!HasEscortState(STATE_ESCORT_ESCORTING))
+                me->SetStandState(UNIT_STAND_STATE_DEAD);
+        }
+
+        void EnterCombat(Unit* /*who*/) override
+        {
+            //For an small probability the npc says something when he get aggro
+            if (urand(0, 9) > 7)
+                Talk(SAY_OOX_AGGRO);
+        }
+
+        void JustSummoned(Creature* summoned) override
+        {
+            summoned->AI()->AttackStart(me);
+        }
+    };
+};
+
+enum GordunniTrap
+{
+    GO_GORDUNNI_DIRT_MOUND = 144064,
+};
+
+class spell_gordunni_trap : public SpellScriptLoader
+{
+public:
+    spell_gordunni_trap()
+        : SpellScriptLoader("spell_gordunni_trap")
+    {
+    }
+
+    class spell_gordunni_trap_SpellScript : public SpellScript
+    {
+        PrepareSpellScript(spell_gordunni_trap_SpellScript);
+
+        void HandleDummy()
+        {
+            if (Unit* caster = GetCaster())
+                if (GameObject* chest = caster->SummonGameObject(GO_GORDUNNI_DIRT_MOUND, caster->GetPositionX(), caster->GetPositionY(), caster->GetPositionZ(), 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0))
+                {
+                    chest->SetSpellId(GetSpellInfo()->Id);
+                    caster->RemoveGameObject(chest, false);
+                }
+        }
+
+        void Register() override
+        {
+            OnCast += SpellCastFn(spell_gordunni_trap_SpellScript::HandleDummy);
+        }
+    };
+
+    SpellScript* GetSpellScript() const override
+    {
+        return new spell_gordunni_trap_SpellScript();
+    }
+};
+
+enum ShayMisc
+{
+    SAY_SHAY_0 = 0, // Don''t forget to get my bell out of the chest here...
+    SAY_SHAY_1 = 1, // This is quite an adventure!...
+    SAY_SHAY_2 = 2, // %s begins to wander off.
+    SAY_SHAY_3 = 3, // Are we taking the scenic route?
+
+    SAY_ROCKBITTER_0 = 0,
+
+    SHAY_FACTION         = 250,
+    QUEST_WANDERING_SHAY = 2845,
+
+    SPELL_SHAY_BELL = 11402,
+
+    EVENT_BEGIN_FOLLOW = 1,
+    EVENT_WANDER_OFF   = 2,
+
+    EVENT_QUEST_TIMER = 3,
+
+    NPC_ROCKBITTER = 7765
+};
+
+struct npc_shay_wanderer_AI : public ScriptedAI
+{
+    npc_shay_wanderer_AI(Creature* creature)
+        : ScriptedAI(creature)
+    {
+        me->RestoreFaction();
+        _wandering     = false;
+        _eventFinished = false;
+        _playerGUID    = 0;
+        events.Reset();
+    }
+
+    void Reset() override
+    {
+        me->RestoreFaction();
+        _wandering     = false;
+        _eventFinished = false;
+        _playerGUID    = 0;
+        events.Reset();
+    }
+
+    void sQuestAccept(Player* player, Quest const* quest) override
+    {
+        if (quest->GetQuestId() == QUEST_WANDERING_SHAY)
+        {
+            me->RemoveFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_QUESTGIVER);
+            me->setFaction(SHAY_FACTION);
+            _playerGUID = player->GetGUID();
+            Talk(SAY_SHAY_0);
+            events.ScheduleEvent(EVENT_BEGIN_FOLLOW, 2s);
+            events.ScheduleEvent(EVENT_WANDER_OFF, 20s);
+            events.ScheduleEvent(EVENT_QUEST_TIMER, 15min);
+        }
+    }
+
+    void JustDied(Unit* /*killer*/) override
+    {
+        if (Player* player = ObjectAccessor::GetPlayer(*me, _playerGUID))
+            player->FailQuest(QUEST_WANDERING_SHAY);
+    }
+
+    void SpellHit(Unit* caster, SpellInfo const* spellInfo) override
+    {
+        if (!caster->ToPlayer())
+            return;
+
+        if (caster->ToPlayer()->GetQuestStatus(QUEST_WANDERING_SHAY) == QUEST_STATUS_INCOMPLETE && _wandering)
+        {
+            _wandering = false;
+            events.ScheduleEvent(EVENT_WANDER_OFF, 20s, 40s);
+            Talk(SAY_SHAY_1);
+            FollowPlayer();
+        }
+    }
+
+    void MoveInLineOfSight(Unit* who) override
+    {
+        if (who->GetEntry() == NPC_ROCKBITTER && me->IsWithinDist(who, 10.f) && !_eventFinished)
+        {
+            _eventFinished = true;
+            events.Reset();
+            if (who->ToCreature() && who->IsAIEnabled)
+                who->ToCreature()->AI()->Talk(SAY_ROCKBITTER_0);
+
+            if (Player* player = ObjectAccessor::GetPlayer(*me, _playerGUID))
+                player->GroupEventHappens(QUEST_WANDERING_SHAY, me);
+
+            me->GetMotionMaster()->MovementExpired();
+            me->GetMotionMaster()->Clear();
+            me->DespawnOrUnsummon(5s);
+        }
+    }
+
+    void UpdateAI(uint32 diff) override
+    {
+        events.Update(diff);
+
+        while (auto eventId = events.ExecuteEvent())
+        {
+            switch (eventId)
+            {
+                case EVENT_BEGIN_FOLLOW: {
+                    FollowPlayer();
+                    break;
+                }
+                case EVENT_WANDER_OFF: {
+                    _wandering = true;
+                    me->GetMotionMaster()->MovementExpired();
+                    me->GetMotionMaster()->Clear();
+                    Talk(SAY_SHAY_2);
+                    Talk(SAY_SHAY_3);
+                    me->GetMotionMaster()->MoveRandom(10.0f);
+                    break;
+                }
+                case EVENT_QUEST_TIMER: {
+                    if (Player* player = ObjectAccessor::GetPlayer(*me, _playerGUID))
+                    {
+                        if (player->GetQuestStatus(QUEST_WANDERING_SHAY) == QUEST_STATUS_INCOMPLETE)
+                            player->FailQuest(QUEST_WANDERING_SHAY);
+                    }
+                    me->DespawnOrUnsummon();
+                    break;
+                }
+            }
+        }
+
+        if (!UpdateVictim())
+            return;
+
+        DoMeleeAttackIfReady();
+    }
+
+    void FollowPlayer()
+    {
+        if (Player* player = ObjectAccessor::GetPlayer(*me, _playerGUID))
+            me->GetMotionMaster()->MoveFollow(player, PET_FOLLOW_DIST, me->GetFollowAngle());
+    }
+
+private:
+    uint64 _playerGUID;
+    bool _wandering;
+    bool _eventFinished;
+    EventMap events;
+};
+
+enum GrimtotemNaturalist
+{
+    SPELL_WRATH             = 9739,
+    SPELL_BEAR_FORM         = 19030,
+    SPELL_MAUL              = 12161,
+    SPELL_DEMORALIZING_ROAR = 15727,
+};
+
+struct npc_grimtotem_naturalistAI : public ScriptedAI
+{
+    npc_grimtotem_naturalistAI(Creature* creature)
+        : ScriptedAI(creature)
+    {
+    }
+
+    void Reset() override
+    {
+        _scheduler.CancelAll();
+        me->RemoveAurasDueToSpell(SPELL_BEAR_FORM);
+    }
+
+    void EnterCombat(Unit* /*attacker*/) override
+    {
+        _scheduler.Schedule(0s, 10s, [this](TaskContext task) {
+            DoCastVictim(SPELL_WRATH);
+            task.Repeat(4s, 5s);
+        });
+    }
+
+    void DamageTaken(Unit*, uint32& /*damage*/, DamageEffectType, SpellSchoolMask) override
+    {
+        if (me->HealthBelowPct(51))
+        {
+            _scheduler.CancelAll();
+            DoCastSelf(SPELL_BEAR_FORM, true);
+
+            _scheduler.Schedule(3s, 4s, [this](TaskContext task) {
+                DoCastVictim(SPELL_MAUL);
+                task.Repeat(12s, 13s);
+            });
+
+            _scheduler.Schedule(8s, 9s, [this](TaskContext task) {
+                DoCastSelf(SPELL_DEMORALIZING_ROAR);
+                task.Repeat(24s, 25s);
+            });
+        }
+    }
+
+    void UpdateAI(uint32 diff) override
+    {
+        _scheduler.Update(diff);
+
+        if (!UpdateVictim())
+            return;
+
+        DoMeleeAttackIfReady();
+    }
+
+private:
+    TaskScheduler _scheduler;
+};
+
+/*######
+## AddSC
+######*/
+
+void AddSC_feralas()
+{
+    new npc_gregan_brewspewer();
+    new npc_oox22fe();
+    new spell_gordunni_trap();
+    new CreatureAILoader<npc_shay_wanderer_AI>("npc_shay_wanderer");
+    new CreatureAILoader<npc_grimtotem_naturalistAI>("npc_grimtotem_naturalist");
+}

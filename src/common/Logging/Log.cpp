@@ -1,0 +1,1209 @@
+
+
+#include "Common.h"
+#include "Log.h"
+#include "Configuration/Config.h"
+#include "Util.h"
+
+#include <stdarg.h>
+#include <stdio.h>
+
+Log::Log()
+    : raLogfile(nullptr)
+    , logfile(nullptr)
+    , charLogfile(nullptr)
+    , dberLogfile(nullptr)
+    , sqlLogFile(nullptr)
+    , sqlDevLogFile(nullptr)
+    , miscLogFile(nullptr)
+    , banLogFile(nullptr)
+    , premiumLogFile(nullptr)
+    , lootLogFile(nullptr)
+    , rewardsLogFile(nullptr)
+    , chinaTownLogFile(nullptr)
+    , releaseDebugLogFile(nullptr)
+    , cheatLogFile(nullptr)
+    , itemRestoreLogFile(nullptr)
+    , rafLogFile(nullptr)
+    , webCommandsLogFile(nullptr)
+    , bagCrashLogFile(nullptr)
+    , m_enableLogDB(false)
+    , m_colored(false)
+{
+    Initialize();
+}
+
+Log::~Log()
+{
+    if (logfile != nullptr)
+        fclose(logfile);
+    logfile = nullptr;
+
+    if (charLogfile != nullptr)
+        fclose(charLogfile);
+    charLogfile = nullptr;
+
+    if (dberLogfile != nullptr)
+        fclose(dberLogfile);
+    dberLogfile = nullptr;
+
+    if (raLogfile != nullptr)
+        fclose(raLogfile);
+    raLogfile = nullptr;
+
+    if (sqlLogFile != nullptr)
+        fclose(sqlLogFile);
+    sqlLogFile = nullptr;
+
+    if (sqlDevLogFile != nullptr)
+        fclose(sqlDevLogFile);
+    sqlDevLogFile = nullptr;
+
+    if (miscLogFile != nullptr)
+        fclose(miscLogFile);
+    miscLogFile = nullptr;
+
+    if (banLogFile != nullptr)
+        fclose(banLogFile);
+    banLogFile = nullptr;
+
+    if (premiumLogFile != nullptr)
+        fclose(premiumLogFile);
+    premiumLogFile = nullptr;
+
+    if (lootLogFile != nullptr)
+        fclose(lootLogFile);
+    lootLogFile = nullptr;
+
+    if (rewardsLogFile != nullptr)
+        fclose(rewardsLogFile);
+    rewardsLogFile = nullptr;
+
+    if (chinaTownLogFile != nullptr)
+        fclose(chinaTownLogFile);
+    chinaTownLogFile = nullptr;
+
+    if (releaseDebugLogFile != nullptr)
+        fclose(releaseDebugLogFile);
+    releaseDebugLogFile = nullptr;
+
+    if (cheatLogFile != nullptr)
+        fclose(cheatLogFile);
+    cheatLogFile = nullptr;
+
+    if (itemRestoreLogFile != nullptr)
+        fclose(itemRestoreLogFile);
+    itemRestoreLogFile = nullptr;
+
+    if (rafLogFile != nullptr)
+        fclose(rafLogFile);
+    rafLogFile = nullptr;
+
+    if (webCommandsLogFile != nullptr)
+        fclose(webCommandsLogFile);
+    webCommandsLogFile = nullptr;
+
+    if (bagCrashLogFile != nullptr)
+        fclose(bagCrashLogFile);
+    bagCrashLogFile = nullptr;
+}
+
+void Log::SetLogLevel(char* Level)
+{
+    int32 NewLevel = atoi((char*)Level);
+    if (NewLevel < 0)
+        NewLevel = 0;
+    m_logLevel = NewLevel;
+
+    outString("LogLevel is %u", m_logLevel);
+}
+
+void Log::SetLogFileLevel(char* Level)
+{
+    int32 NewLevel = atoi((char*)Level);
+    if (NewLevel < 0)
+        NewLevel = 0;
+    m_logFileLevel = NewLevel;
+
+    outString("LogFileLevel is %u", m_logFileLevel);
+}
+
+void Log::Initialize()
+{
+    /// Check whether we'll log GM commands/RA events/character outputs/chat stuffs
+    m_dbChar = sConfigMgr->GetBoolDefault("LogDB.Char", false);
+    m_dbRA   = sConfigMgr->GetBoolDefault("LogDB.RA", false);
+
+    /// Realm must be 0 by default
+    SetRealmID(0);
+
+    /// Common log files data
+    m_logsDir = sConfigMgr->GetStringDefault("LogsDir", "");
+    if (!m_logsDir.empty())
+        if ((m_logsDir.at(m_logsDir.length() - 1) != '/') && (m_logsDir.at(m_logsDir.length() - 1) != '\\'))
+            m_logsDir.push_back('/');
+
+    m_logsTimestamp = "_" + GetTimestampStr();
+
+    /// Open specific log files
+    logfile = openLogFile("LogFile", "LogTimestamp", "w");
+    InitColors(sConfigMgr->GetStringDefault("LogColors", ""));
+
+    charLogfile         = openLogFile("CharLogFile", "CharLogTimestamp", "a");
+    dberLogfile         = openLogFile("DBErrorLogFile", nullptr, "a");
+    raLogfile           = openLogFile("RaLogFile", nullptr, "a");
+    sqlLogFile          = openLogFile("SQLDriverLogFile", nullptr, "a");
+    sqlDevLogFile       = openLogFile("SQLDeveloperLogFile", nullptr, "a");
+    miscLogFile         = fopen((m_logsDir + "Misc.log").c_str(), "a");
+    banLogFile          = openLogFile("BanLogFile", "BanLogTimestamp", "a");
+    premiumLogFile      = openLogFile("PremiumLogFile", "PremiumLogTimestamp", "a");
+    lootLogFile         = openLogFile("LootLogFile", "LootLogTimestamp", "a");
+    rewardsLogFile      = openLogFile("RewardsLogFile", "RewardsLogTimestamp", "a");
+    chinaTownLogFile    = openLogFile("ChinaTownLogFile", "ChinaTownLogTimestamp", "a");
+    itemRestoreLogFile  = openLogFile("ItemRestoreLogFile", "ItemRestoreLogTimestamp", "a");
+    releaseDebugLogFile = openLogFile("ReleaseDebugLogFile", "ReleaseDebugLogTimestamp", "a");
+    cheatLogFile        = openLogFile("CheatLogFile", "CheatLogTimestamp", "a");
+    rafLogFile          = openLogFile("RaFLogFile", "RaFLogTimestamp", "a");
+    bagCrashLogFile     = openLogFile("BagCrashLogFile", "BagCrashLogTimestamp", "a");
+
+    // Main log file settings
+    m_logLevel              = sConfigMgr->GetIntDefault("LogLevel", LOGL_NORMAL);
+    m_logFileLevel          = sConfigMgr->GetIntDefault("LogFileLevel", LOGL_NORMAL);
+    m_dbLogLevel            = sConfigMgr->GetIntDefault("DBLogLevel", LOGL_NORMAL);
+    m_sqlDriverQueryLogging = sConfigMgr->GetBoolDefault("SQLDriverQueryLogging", false);
+
+    m_DebugLogMask = DebugLogFilters(sConfigMgr->GetIntDefault("DebugLogMask", LOG_FILTER_NONE));
+
+    // Char log settings
+    m_charLog_Dump          = sConfigMgr->GetBoolDefault("CharLogDump", false);
+    m_charLog_Dump_Separate = sConfigMgr->GetBoolDefault("CharLogDump.Separate", false);
+    if (m_charLog_Dump_Separate)
+    {
+        m_dumpsDir = sConfigMgr->GetStringDefault("CharLogDump.SeparateDir", "");
+        if (!m_dumpsDir.empty())
+            if ((m_dumpsDir.at(m_dumpsDir.length() - 1) != '/') && (m_dumpsDir.at(m_dumpsDir.length() - 1) != '\\'))
+                m_dumpsDir.push_back('/');
+    }
+}
+
+void Log::ReloadConfig()
+{
+    m_logLevel     = sConfigMgr->GetIntDefault("LogLevel", LOGL_NORMAL);
+    m_logFileLevel = sConfigMgr->GetIntDefault("LogFileLevel", LOGL_NORMAL);
+    m_dbLogLevel   = sConfigMgr->GetIntDefault("DBLogLevel", LOGL_NORMAL);
+
+    m_DebugLogMask = DebugLogFilters(sConfigMgr->GetIntDefault("DebugLogMask", LOG_FILTER_NONE));
+}
+
+FILE* Log::openLogFile(char const* configFileName, char const* configTimeStampFlag, char const* mode)
+{
+    std::string logfn = sConfigMgr->GetStringDefault(configFileName, "");
+    if (logfn.empty())
+        return nullptr;
+
+    if (configTimeStampFlag && sConfigMgr->GetBoolDefault(configTimeStampFlag, false))
+    {
+        size_t dot_pos = logfn.find_last_of(".");
+        if (dot_pos != logfn.npos)
+            logfn.insert(dot_pos, m_logsTimestamp);
+        else
+            logfn += m_logsTimestamp;
+    }
+
+    return fopen((m_logsDir + logfn).c_str(), mode);
+}
+
+void Log::outTimestamp(FILE* file)
+{
+    time_t t = time(nullptr);
+    tm* aTm  = localtime(&t);
+    //       YYYY   year
+    //       MM     month (2 digits 01-12)
+    //       DD     day (2 digits 01-31)
+    //       HH     hour (2 digits 00-23)
+    //       MM     minutes (2 digits 00-59)
+    //       SS     seconds (2 digits 00-59)
+    fprintf(file, "%-4d-%02d-%02d %02d:%02d:%02d ", aTm->tm_year + 1900, aTm->tm_mon + 1, aTm->tm_mday, aTm->tm_hour, aTm->tm_min, aTm->tm_sec);
+}
+
+void Log::InitColors(const std::string& str)
+{
+    if (str.empty())
+    {
+        m_colored = false;
+        return;
+    }
+
+    int color[4];
+
+    std::istringstream ss(str);
+
+    for (uint8 i = 0; i < LogLevels; ++i)
+    {
+        ss >> color[i];
+
+        if (!ss)
+            return;
+
+        if (color[i] < 0 || color[i] >= Colors)
+            return;
+    }
+
+    for (uint8 i = 0; i < LogLevels; ++i)
+        m_colors[i] = ColorTypes(color[i]);
+
+    m_colored = true;
+}
+
+void Log::SetColor(bool stdout_stream, ColorTypes color)
+{
+#if PLATFORM == PLATFORM_WINDOWS
+    static WORD WinColorFG[Colors] = {
+        0,                                                   // BLACK
+        FOREGROUND_RED,                                      // RED
+        FOREGROUND_GREEN,                                    // GREEN
+        FOREGROUND_RED | FOREGROUND_GREEN,                   // BROWN
+        FOREGROUND_BLUE,                                     // BLUE
+        FOREGROUND_RED | FOREGROUND_BLUE,                    // MAGENTA
+        FOREGROUND_GREEN | FOREGROUND_BLUE,                  // CYAN
+        FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE, // WHITE
+                                                             // YELLOW
+        FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_INTENSITY,
+        // RED_BOLD
+        FOREGROUND_RED | FOREGROUND_INTENSITY,
+        // GREEN_BOLD
+        FOREGROUND_GREEN | FOREGROUND_INTENSITY,
+        FOREGROUND_BLUE | FOREGROUND_INTENSITY, // BLUE_BOLD
+                                                // MAGENTA_BOLD
+        FOREGROUND_RED | FOREGROUND_BLUE | FOREGROUND_INTENSITY,
+        // CYAN_BOLD
+        FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_INTENSITY,
+        // WHITE_BOLD
+        FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_INTENSITY
+    };
+
+    HANDLE hConsole = GetStdHandle(stdout_stream ? STD_OUTPUT_HANDLE : STD_ERROR_HANDLE);
+    SetConsoleTextAttribute(hConsole, WinColorFG[color]);
+#else
+    enum ANSITextAttr
+    {
+        TA_NORMAL  = 0,
+        TA_BOLD    = 1,
+        TA_BLINK   = 5,
+        TA_REVERSE = 7
+    };
+
+    enum ANSIFgTextAttr
+    {
+        FG_BLACK = 30,
+        FG_RED,
+        FG_GREEN,
+        FG_BROWN,
+        FG_BLUE,
+        FG_MAGENTA,
+        FG_CYAN,
+        FG_WHITE,
+        FG_YELLOW
+    };
+
+    enum ANSIBgTextAttr
+    {
+        BG_BLACK = 40,
+        BG_RED,
+        BG_GREEN,
+        BG_BROWN,
+        BG_BLUE,
+        BG_MAGENTA,
+        BG_CYAN,
+        BG_WHITE
+    };
+
+    static uint8 UnixColorFG[Colors] = {
+        FG_BLACK,   // BLACK
+        FG_RED,     // RED
+        FG_GREEN,   // GREEN
+        FG_BROWN,   // BROWN
+        FG_BLUE,    // BLUE
+        FG_MAGENTA, // MAGENTA
+        FG_CYAN,    // CYAN
+        FG_WHITE,   // WHITE
+        FG_YELLOW,  // YELLOW
+        FG_RED,     // LRED
+        FG_GREEN,   // LGREEN
+        FG_BLUE,    // LBLUE
+        FG_MAGENTA, // LMAGENTA
+        FG_CYAN,    // LCYAN
+        FG_WHITE    // LWHITE
+    };
+
+    fprintf((stdout_stream ? stdout : stderr), "\x1b[%d%sm", UnixColorFG[color], (color >= YELLOW && color < Colors ? ";1" : ""));
+#endif
+}
+
+void Log::ResetColor(bool stdout_stream)
+{
+#if PLATFORM == PLATFORM_WINDOWS
+    HANDLE hConsole = GetStdHandle(stdout_stream ? STD_OUTPUT_HANDLE : STD_ERROR_HANDLE);
+    SetConsoleTextAttribute(hConsole, FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED);
+#else
+    fprintf((stdout_stream ? stdout : stderr), "\x1b[0m");
+#endif
+}
+
+std::string Log::GetTimestampStr()
+{
+    return TimeToTimestampStr(time(nullptr));
+}
+
+void Log::outDB(LogTypes type, const char* str)
+{
+    if (!str || type >= MAX_LOG_TYPES)
+        return;
+
+    std::string logStr(str);
+    if (logStr.empty())
+        return;
+}
+
+void Log::outString(const char* str, ...)
+{
+    if (!str)
+        return;
+
+    /*if (m_enableLogDB)
+    {
+        va_list ap2;
+        va_start(ap2, str);
+        char nnew_str[MAX_QUERY_LEN];
+        vsnprintf(nnew_str, MAX_QUERY_LEN, str, ap2);
+        outDB(LOG_TYPE_STRING, nnew_str);
+        va_end(ap2);
+    }*/
+
+    if (m_colored)
+        SetColor(true, m_colors[LOGL_NORMAL]);
+
+    va_list ap;
+
+    va_start(ap, str);
+    vutf8printf(stdout, str, &ap);
+    va_end(ap);
+
+    if (m_colored)
+        ResetColor(true);
+
+    printf("\n");
+    if (logfile)
+    {
+        outTimestamp(logfile);
+        va_start(ap, str);
+        vfprintf(logfile, str, ap);
+        fprintf(logfile, "\n");
+        va_end(ap);
+
+        fflush(logfile);
+    }
+    fflush(stdout);
+}
+
+void Log::outString()
+{
+    printf("\n");
+    if (logfile)
+    {
+        outTimestamp(logfile);
+        fprintf(logfile, "\n");
+        fflush(logfile);
+    }
+    fflush(stdout);
+}
+
+void Log::outCrash(const char* err, ...)
+{
+    if (!err)
+        return;
+
+    if (m_enableLogDB)
+    {
+        va_list ap2;
+        va_start(ap2, err);
+        char nnew_str[MAX_QUERY_LEN];
+        vsnprintf(nnew_str, MAX_QUERY_LEN, err, ap2);
+        outDB(LOG_TYPE_CRASH, nnew_str);
+        va_end(ap2);
+    }
+
+    if (m_colored)
+        SetColor(false, LRED);
+
+    va_list ap;
+
+    va_start(ap, err);
+    vutf8printf(stderr, err, &ap);
+    va_end(ap);
+
+    if (m_colored)
+        ResetColor(false);
+
+    fprintf(stderr, "\n");
+    if (logfile)
+    {
+        outTimestamp(logfile);
+        fprintf(logfile, "CRASH ALERT: ");
+
+        va_start(ap, err);
+        vfprintf(logfile, err, ap);
+        va_end(ap);
+
+        fprintf(logfile, "\n");
+        fflush(logfile);
+    }
+    fflush(stderr);
+}
+
+void Log::outError(const char* err, ...)
+{
+    if (!err)
+        return;
+
+    if (m_enableLogDB)
+    {
+        va_list ap2;
+        va_start(ap2, err);
+        char nnew_str[MAX_QUERY_LEN];
+        vsnprintf(nnew_str, MAX_QUERY_LEN, err, ap2);
+        outDB(LOG_TYPE_ERROR, nnew_str);
+        va_end(ap2);
+    }
+
+    if (m_colored)
+        SetColor(false, LRED);
+
+    va_list ap;
+
+    va_start(ap, err);
+    vutf8printf(stderr, err, &ap);
+    va_end(ap);
+
+    if (m_colored)
+        ResetColor(false);
+
+    fprintf(stderr, "\n");
+    if (logfile)
+    {
+        outTimestamp(logfile);
+        fprintf(logfile, "ERROR: ");
+
+        va_start(ap, err);
+        vfprintf(logfile, err, ap);
+        va_end(ap);
+
+        fprintf(logfile, "\n");
+        fflush(logfile);
+    }
+    fflush(stderr);
+}
+
+void Log::outSQLDriver(const char* str, ...)
+{
+    if (!str)
+        return;
+
+    va_list ap;
+    va_start(ap, str);
+    vutf8printf(stdout, str, &ap);
+    va_end(ap);
+
+    printf("\n");
+
+    if (sqlLogFile)
+    {
+        outTimestamp(sqlLogFile);
+
+        va_list apSQL;
+        va_start(apSQL, str);
+        vfprintf(sqlLogFile, str, apSQL);
+        va_end(apSQL);
+
+        fprintf(sqlLogFile, "\n");
+        fflush(sqlLogFile);
+    }
+
+    fflush(stdout);
+}
+
+void Log::outErrorDb(const char* err, ...)
+{
+    if (!err)
+        return;
+
+    if (m_colored)
+        SetColor(false, LRED);
+
+    if (m_enableLogDB)
+    {
+        va_list ap2;
+        va_start(ap2, err);
+        char nnew_str[MAX_QUERY_LEN];
+        vsnprintf(nnew_str, MAX_QUERY_LEN, err, ap2);
+        outDB(LOG_TYPE_ERROR, nnew_str);
+        va_end(ap2);
+    }
+
+    va_list ap;
+
+    va_start(ap, err);
+    vutf8printf(stderr, err, &ap);
+    va_end(ap);
+
+    if (m_colored)
+        ResetColor(false);
+
+    fprintf(stderr, "\n");
+
+    if (logfile)
+    {
+        outTimestamp(logfile);
+        fprintf(logfile, "ERROR: ");
+
+        va_start(ap, err);
+        vfprintf(logfile, err, ap);
+        va_end(ap);
+
+        fprintf(logfile, "\n");
+        fflush(logfile);
+    }
+
+    if (dberLogfile)
+    {
+        outTimestamp(dberLogfile);
+        va_start(ap, err);
+        vfprintf(dberLogfile, err, ap);
+        va_end(ap);
+
+        fprintf(dberLogfile, "\n");
+        fflush(dberLogfile);
+    }
+    fflush(stderr);
+}
+
+void Log::outBasic(const char* str, ...)
+{
+    if (!str)
+        return;
+
+    if (m_enableLogDB && m_dbLogLevel > LOGL_NORMAL)
+    {
+        va_list ap2;
+        va_start(ap2, str);
+        char nnew_str[MAX_QUERY_LEN];
+        vsnprintf(nnew_str, MAX_QUERY_LEN, str, ap2);
+        outDB(LOG_TYPE_BASIC, nnew_str);
+        va_end(ap2);
+    }
+
+    if (m_logLevel > LOGL_NORMAL)
+    {
+        if (m_colored)
+            SetColor(true, m_colors[LOGL_BASIC]);
+
+        va_list ap;
+        va_start(ap, str);
+        vutf8printf(stdout, str, &ap);
+        va_end(ap);
+
+        if (m_colored)
+            ResetColor(true);
+
+        printf("\n");
+
+        if (logfile)
+        {
+            outTimestamp(logfile);
+            va_list ap2;
+            va_start(ap2, str);
+            vfprintf(logfile, str, ap2);
+            fprintf(logfile, "\n");
+            va_end(ap2);
+            fflush(logfile);
+        }
+    }
+    fflush(stdout);
+}
+
+void Log::outDetail(const char* str, ...)
+{
+    if (!str)
+        return;
+
+    if (m_enableLogDB && m_dbLogLevel > LOGL_BASIC)
+    {
+        va_list ap2;
+        va_start(ap2, str);
+        char nnew_str[MAX_QUERY_LEN];
+        vsnprintf(nnew_str, MAX_QUERY_LEN, str, ap2);
+        outDB(LOG_TYPE_DETAIL, nnew_str);
+        va_end(ap2);
+    }
+
+    if (m_logLevel > LOGL_BASIC)
+    {
+        if (m_colored)
+            SetColor(true, m_colors[LOGL_DETAIL]);
+
+        va_list ap;
+        va_start(ap, str);
+        vutf8printf(stdout, str, &ap);
+        va_end(ap);
+
+        if (m_colored)
+            ResetColor(true);
+
+        printf("\n");
+
+        if (logfile)
+        {
+            outTimestamp(logfile);
+            va_list ap2;
+            va_start(ap2, str);
+            vfprintf(logfile, str, ap2);
+            va_end(ap2);
+
+            fprintf(logfile, "\n");
+            fflush(logfile);
+        }
+    }
+
+    fflush(stdout);
+}
+
+void Log::outSQLDev(const char* str, ...)
+{
+    if (!str)
+        return;
+
+    va_list ap;
+    va_start(ap, str);
+    vutf8printf(stdout, str, &ap);
+    va_end(ap);
+
+    printf("\n");
+
+    if (sqlDevLogFile)
+    {
+        va_list ap2;
+        va_start(ap2, str);
+        vfprintf(sqlDevLogFile, str, ap2);
+        va_end(ap2);
+
+        fprintf(sqlDevLogFile, "\n");
+        fflush(sqlDevLogFile);
+    }
+
+    fflush(stdout);
+}
+
+void Log::outDebug(DebugLogFilters f, const char* str, ...)
+{
+    if (!(m_DebugLogMask & f))
+        return;
+
+    if (!str)
+        return;
+
+    if (m_enableLogDB && m_dbLogLevel > LOGL_DETAIL)
+    {
+        va_list ap2;
+        va_start(ap2, str);
+        char nnew_str[MAX_QUERY_LEN];
+        vsnprintf(nnew_str, MAX_QUERY_LEN, str, ap2);
+        outDB(LOG_TYPE_DEBUG, nnew_str);
+        va_end(ap2);
+    }
+
+    if (m_logLevel > LOGL_DETAIL)
+    {
+        if (m_colored)
+            SetColor(true, m_colors[LOGL_DEBUG]);
+
+        va_list ap;
+        va_start(ap, str);
+        vutf8printf(stdout, str, &ap);
+        va_end(ap);
+
+        if (m_colored)
+            ResetColor(true);
+
+        printf("\n");
+
+        if (logfile)
+        {
+            outTimestamp(logfile);
+            va_list ap2;
+            va_start(ap2, str);
+            vfprintf(logfile, str, ap2);
+            va_end(ap2);
+
+            fprintf(logfile, "\n");
+            fflush(logfile);
+        }
+    }
+    fflush(stdout);
+}
+
+void Log::outStaticDebug(const char* str, ...)
+{
+    if (!str)
+        return;
+
+    if (m_enableLogDB && m_dbLogLevel > LOGL_DETAIL)
+    {
+        va_list ap2;
+        va_start(ap2, str);
+        char nnew_str[MAX_QUERY_LEN];
+        vsnprintf(nnew_str, MAX_QUERY_LEN, str, ap2);
+        outDB(LOG_TYPE_DEBUG, nnew_str);
+        va_end(ap2);
+    }
+
+    if (m_logLevel > LOGL_DETAIL)
+    {
+        if (m_colored)
+            SetColor(true, m_colors[LOGL_DEBUG]);
+
+        va_list ap;
+        va_start(ap, str);
+        vutf8printf(stdout, str, &ap);
+        va_end(ap);
+
+        if (m_colored)
+            ResetColor(true);
+
+        printf("\n");
+
+        if (logfile)
+        {
+            outTimestamp(logfile);
+            va_list ap2;
+            va_start(ap2, str);
+            vfprintf(logfile, str, ap2);
+            va_end(ap2);
+
+            fprintf(logfile, "\n");
+            fflush(logfile);
+        }
+    }
+    fflush(stdout);
+}
+
+void Log::outStringInLine(const char* str, ...)
+{
+    if (!str)
+        return;
+
+    va_list ap;
+
+    va_start(ap, str);
+    vutf8printf(stdout, str, &ap);
+    va_end(ap);
+
+    if (logfile)
+    {
+        va_start(ap, str);
+        vfprintf(logfile, str, ap);
+        va_end(ap);
+    }
+}
+
+void Log::outChar(const char* str, ...)
+{
+    if (!str)
+        return;
+
+    if (m_enableLogDB && m_dbChar)
+    {
+        va_list ap2;
+        va_start(ap2, str);
+        char nnew_str[MAX_QUERY_LEN];
+        vsnprintf(nnew_str, MAX_QUERY_LEN, str, ap2);
+        outDB(LOG_TYPE_CHAR, nnew_str);
+        va_end(ap2);
+    }
+
+    if (charLogfile)
+    {
+        outTimestamp(charLogfile);
+        va_list ap;
+        va_start(ap, str);
+        vfprintf(charLogfile, str, ap);
+        fprintf(charLogfile, "\n");
+        va_end(ap);
+        fflush(charLogfile);
+    }
+}
+
+void Log::outCharDump(const char* str, uint32 account_id, uint32 guid, const char* name)
+{
+    FILE* file = nullptr;
+    if (m_charLog_Dump_Separate)
+    {
+        char fileName[29]; // Max length: name(12) + guid(11) + _.log (5) + \0
+        snprintf(fileName, 29, "%d_%s.log", guid, name);
+        std::string sFileName(m_dumpsDir);
+        sFileName.append(fileName);
+        file = fopen((m_logsDir + sFileName).c_str(), "w");
+    }
+    else
+        file = charLogfile;
+    if (file)
+    {
+        fprintf(file, "== START DUMP == (account: %u guid: %u name: %s )\n%s\n== END DUMP ==\n",
+            account_id, guid, name, str);
+        fflush(file);
+        if (m_charLog_Dump_Separate)
+            fclose(file);
+    }
+}
+
+void Log::outRemote(const char* str, ...)
+{
+    if (!str)
+        return;
+
+    if (m_enableLogDB && m_dbRA)
+    {
+        va_list ap2;
+        va_start(ap2, str);
+        char nnew_str[MAX_QUERY_LEN];
+        vsnprintf(nnew_str, MAX_QUERY_LEN, str, ap2);
+        outDB(LOG_TYPE_RA, nnew_str);
+        va_end(ap2);
+    }
+
+    if (raLogfile)
+    {
+        outTimestamp(raLogfile);
+        va_list ap;
+        va_start(ap, str);
+        vfprintf(raLogfile, str, ap);
+        fprintf(raLogfile, "\n");
+        va_end(ap);
+        fflush(raLogfile);
+    }
+}
+
+void Log::outMisc(const char* str, ...)
+{
+    if (!str)
+        return;
+
+    if (m_enableLogDB)
+    {
+        va_list ap2;
+        va_start(ap2, str);
+        char nnew_str[MAX_QUERY_LEN];
+        vsnprintf(nnew_str, MAX_QUERY_LEN, str, ap2);
+        outDB(LOG_TYPE_PERF, nnew_str);
+        va_end(ap2);
+    }
+
+    if (miscLogFile)
+    {
+        outTimestamp(miscLogFile);
+        va_list ap;
+        va_start(ap, str);
+        vfprintf(miscLogFile, str, ap);
+        fprintf(miscLogFile, "\n");
+        fflush(miscLogFile);
+        va_end(ap);
+    }
+}
+
+void Log::outBan(const char* str, ...)
+{
+    if (!str)
+        return;
+
+    if (m_enableLogDB)
+    {
+        va_list ap2;
+        va_start(ap2, str);
+        char nnew_str[MAX_QUERY_LEN];
+        vsnprintf(nnew_str, MAX_QUERY_LEN, str, ap2);
+        outDB(LOG_TYPE_PERF, nnew_str);
+        va_end(ap2);
+    }
+
+    if (banLogFile)
+    {
+        outTimestamp(banLogFile);
+        va_list ap;
+        va_start(ap, str);
+        vfprintf(banLogFile, str, ap);
+        fprintf(banLogFile, "\n");
+        fflush(banLogFile);
+        va_end(ap);
+    }
+}
+
+void Log::outPremium(const char* str, ...)
+{
+    if (!str)
+        return;
+
+    if (m_enableLogDB)
+    {
+        va_list ap2;
+        va_start(ap2, str);
+        char nnew_str[MAX_QUERY_LEN];
+        vsnprintf(nnew_str, MAX_QUERY_LEN, str, ap2);
+        outDB(LOG_TYPE_PERF, nnew_str);
+        va_end(ap2);
+    }
+
+    if (premiumLogFile)
+    {
+        outTimestamp(premiumLogFile);
+        va_list ap;
+        va_start(ap, str);
+        vfprintf(premiumLogFile, str, ap);
+        fprintf(premiumLogFile, "\n");
+        fflush(premiumLogFile);
+        va_end(ap);
+    }
+}
+
+void Log::outLoot(const char* str, ...)
+{
+    if (!str)
+        return;
+
+    if (m_enableLogDB)
+    {
+        va_list ap2;
+        va_start(ap2, str);
+        char nnew_str[MAX_QUERY_LEN];
+        vsnprintf(nnew_str, MAX_QUERY_LEN, str, ap2);
+        outDB(LOG_TYPE_PERF, nnew_str);
+        va_end(ap2);
+    }
+
+    if (lootLogFile)
+    {
+        outTimestamp(lootLogFile);
+        va_list ap;
+        va_start(ap, str);
+        vfprintf(lootLogFile, str, ap);
+        fprintf(lootLogFile, "\n");
+        fflush(lootLogFile);
+        va_end(ap);
+    }
+}
+
+void Log::outRewards(const char* str, ...)
+{
+    if (!str)
+        return;
+
+    if (m_enableLogDB)
+    {
+        va_list ap2;
+        va_start(ap2, str);
+        char nnew_str[MAX_QUERY_LEN];
+        vsnprintf(nnew_str, MAX_QUERY_LEN, str, ap2);
+        outDB(LOG_TYPE_PERF, nnew_str);
+        va_end(ap2);
+    }
+
+    if (rewardsLogFile)
+    {
+        outTimestamp(rewardsLogFile);
+        va_list ap;
+        va_start(ap, str);
+        vfprintf(rewardsLogFile, str, ap);
+        fprintf(rewardsLogFile, "\n");
+        fflush(rewardsLogFile);
+        va_end(ap);
+    }
+}
+
+void Log::outChinaTown(const char* str, ...)
+{
+    if (!str)
+        return;
+
+    if (m_enableLogDB)
+    {
+        va_list ap2;
+        va_start(ap2, str);
+        char nnew_str[MAX_QUERY_LEN];
+        vsnprintf(nnew_str, MAX_QUERY_LEN, str, ap2);
+        outDB(LOG_TYPE_PERF, nnew_str);
+        va_end(ap2);
+    }
+
+    if (chinaTownLogFile)
+    {
+        outTimestamp(chinaTownLogFile);
+        va_list ap;
+        va_start(ap, str);
+        vfprintf(chinaTownLogFile, str, ap);
+        fprintf(chinaTownLogFile, "\n");
+        fflush(chinaTownLogFile);
+        va_end(ap);
+    }
+}
+
+
+void Log::outItemRestore(const char* str, ...)
+{
+    if (!str)
+        return;
+
+    if (m_enableLogDB)
+    {
+        va_list ap2;
+        va_start(ap2, str);
+        char nnew_str[MAX_QUERY_LEN];
+        vsnprintf(nnew_str, MAX_QUERY_LEN, str, ap2);
+        outDB(LOG_TYPE_PERF, nnew_str);
+        va_end(ap2);
+    }
+
+    if (itemRestoreLogFile)
+    {
+        outTimestamp(itemRestoreLogFile);
+        va_list ap;
+        va_start(ap, str);
+        vfprintf(itemRestoreLogFile, str, ap);
+        fprintf(itemRestoreLogFile, "\n");
+        fflush(itemRestoreLogFile);
+        va_end(ap);
+    }
+}
+
+void Log::outReleaseDebug(const char* str, ...)
+{
+    if (!str)
+        return;
+
+    if (m_enableLogDB)
+    {
+        va_list ap2;
+        va_start(ap2, str);
+        char nnew_str[MAX_QUERY_LEN];
+        vsnprintf(nnew_str, MAX_QUERY_LEN, str, ap2);
+        outDB(LOG_TYPE_PERF, nnew_str);
+        va_end(ap2);
+    }
+
+    if (releaseDebugLogFile)
+    {
+        outTimestamp(releaseDebugLogFile);
+        va_list ap;
+        va_start(ap, str);
+        vfprintf(releaseDebugLogFile, str, ap);
+        fprintf(releaseDebugLogFile, "\n");
+        fflush(releaseDebugLogFile);
+        va_end(ap);
+    }
+}
+
+void Log::outCheat(const char* str, ...)
+{
+    if (!str)
+        return;
+
+    if (m_enableLogDB)
+    {
+        va_list ap2;
+        va_start(ap2, str);
+        char nnew_str[MAX_QUERY_LEN];
+        vsnprintf(nnew_str, MAX_QUERY_LEN, str, ap2);
+        outDB(LOG_TYPE_PERF, nnew_str);
+        va_end(ap2);
+    }
+
+    if (cheatLogFile)
+    {
+        outTimestamp(cheatLogFile);
+        va_list ap;
+        va_start(ap, str);
+        vfprintf(cheatLogFile, str, ap);
+        fprintf(cheatLogFile, "\n");
+        fflush(cheatLogFile);
+        va_end(ap);
+    }
+}
+
+void Log::outRaF(const char* str, ...)
+{
+    if (!str)
+        return;
+
+    if (m_enableLogDB)
+    {
+        va_list ap2;
+        va_start(ap2, str);
+        char nnew_str[MAX_QUERY_LEN];
+        vsnprintf(nnew_str, MAX_QUERY_LEN, str, ap2);
+        outDB(LOG_TYPE_PERF, nnew_str);
+        va_end(ap2);
+    }
+
+    if (rafLogFile)
+    {
+        outTimestamp(rafLogFile);
+        va_list ap;
+        va_start(ap, str);
+        vfprintf(rafLogFile, str, ap);
+        fprintf(rafLogFile, "\n");
+        fflush(rafLogFile);
+        va_end(ap);
+    }
+}
+
+void Log::outWebCommands(const char* str, ...)
+{
+    if (!str)
+        return;
+
+
+    if (webCommandsLogFile)
+    {
+        outTimestamp(webCommandsLogFile);
+        va_list ap;
+        va_start(ap, str);
+        vfprintf(webCommandsLogFile, str, ap);
+        fprintf(webCommandsLogFile, "\n");
+        fflush(webCommandsLogFile);
+        va_end(ap);
+    }
+}
+
+void Log::outBagCrash(const char* str, ...)
+{
+    if (!str)
+        return;
+
+    if (m_enableLogDB)
+    {
+        va_list ap2;
+        va_start(ap2, str);
+        char nnew_str[MAX_QUERY_LEN];
+        vsnprintf(nnew_str, MAX_QUERY_LEN, str, ap2);
+        outDB(LOG_TYPE_PERF, nnew_str);
+        va_end(ap2);
+    }
+
+    if (bagCrashLogFile)
+    {
+        outTimestamp(bagCrashLogFile);
+        va_list ap;
+        va_start(ap, str);
+        vfprintf(bagCrashLogFile, str, ap);
+        fprintf(bagCrashLogFile, "\n");
+        fflush(bagCrashLogFile);
+        va_end(ap);
+    }
+}

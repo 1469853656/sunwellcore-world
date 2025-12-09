@@ -1,0 +1,3 @@
+-- DB/Quest: Mythic quests update Details text https://github.com/SunwellTracker/issues/issues/3414
+UPDATE `quest_template` SET `Details` = 'Do you remember the excitement of exploring older dungeons for the first time? It was quite exciting! Nearly no one is exploring them now, quite unfortunate. Do me a favor champion, explore three random dungeons like we used to do back in the good old days?' WHERE `id` = 26035;
+UPDATE `quest_template` SET `Details` = 'I have seen many dreadful battles before my time when I was younger and more in shape... Blood demands blood! If you wish to receive a Mythic Keystone, slay enemies in my name. Conquer two of the famous battlegrounds of your choosing and the reward will be yours... simple, eh?' WHERE `id` = 26036;

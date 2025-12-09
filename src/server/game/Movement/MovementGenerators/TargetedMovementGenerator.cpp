@@ -1,0 +1,485 @@
+
+
+#include "ByteBuffer.h"
+#include "TargetedMovementGenerator.h"
+#include "Errors.h"
+#include "Creature.h"
+#include "CreatureAI.h"
+#include "World.h"
+#include "MoveSplineInit.h"
+#include "MoveSpline.h"
+#include "Player.h"
+#include "Spell.h"
+#include "BattlegroundRV.h"
+#include "VehicleDefines.h"
+#include "Transport.h"
+#include "MapManager.h"
+
+#include <cmath>
+
+static bool ValidateBackout(Unit* owner, Unit* target)
+{
+    float targetCombatReach = target->IsPlayer() ? DEFAULT_COMBAT_REACH : target->GetCombatReach();
+
+    //! Big units should ignore backout
+    if (owner->GetCombatReach() * 0.25f > targetCombatReach)
+        return false;
+
+    //! Too much Z difference
+    if (Creature* creature = owner->ToCreature())
+        if (!creature->CanFly() && (creature->GetDistanceZ(target) > CREATURE_Z_ATTACK_RANGE + creature->m_CombatDistance))
+            return false;
+
+    return true;
+}
+
+static bool IsInBounds(Unit* owner, Unit* target, float penetrationPct = 0.5f)
+{
+    float targetCombatReach = target->IsPlayer() ? DEFAULT_COMBAT_REACH : target->GetCombatReach();
+    float radius   = (owner->GetCombatReach() + targetCombatReach) * penetrationPct;
+    float distance = (G3D::Vector3(owner->GetPositionX(), owner->GetPositionY(), owner->GetPositionZ()) - G3D::Vector3(target->GetPositionX(), target->GetPositionY(), target->GetPositionZ())).squaredLength();
+    return distance < radius * radius;
+}
+
+template<class T, typename D>
+void TargetedMovementGeneratorMedium<T,D>::_setTargetLocation(T* owner, bool initial, bool InBounds)
+{
+    if (!i_target.isValid() || !i_target->IsInWorld() || !owner->IsInMap(this->GetTarget()))
+        return;
+
+    if (owner->HasUnitState(UNIT_STATE_NOT_MOVE))
+    {
+        if (owner->GetTypeId() == TYPEID_UNIT)
+            owner->ToCreature()->SetCannotReachTarget(false);
+        return;
+    }
+
+    if (owner->GetTypeId() == TYPEID_UNIT && !i_target->isInAccessiblePlaceFor(owner->ToCreature()))
+    {
+        owner->ToCreature()->SetCannotReachTarget(true);
+        return;
+    }
+
+    float x, y, z;
+    bool isPlayerPet = owner->IsPet() && IS_PLAYER_GUID(owner->GetOwnerGUID());
+    bool sameTransport = owner->GetTransport() && owner->GetTransport() ==  i_target->GetTransport();
+    if (owner->GetMapId() == 631 && owner->GetTransport() && owner->GetTransport()->IsMotionTransport() && i_target->GetTransport() && i_target->GetTransport()->IsMotionTransport()) // for ICC, if both on a motion transport => don't use mmaps
+        sameTransport = owner->GetTypeId() == TYPEID_UNIT && i_target->isInAccessiblePlaceFor(owner->ToCreature());
+    bool useMMaps = World::IsPathfindingEnabled(owner->FindMap()) && !sameTransport;
+    bool forceDest = (owner->GetTypeId() == TYPEID_UNIT && owner->IsPet() && owner->HasUnitState(UNIT_STATE_FOLLOW)) || // allow pets following their master to cheat while generating paths
+                     (owner->GetMapId() == 572 && (owner->GetPositionX() < 1275.0f || i_target->GetPositionX() < 1275.0f)) || // pussywizard: Ruins of Lordaeron - special case (acid)
+                     sameTransport || // nothing to comment, can't find path on transports so allow it
+                     (i_target->GetTypeId() == TYPEID_PLAYER && i_target->ToPlayer()->IsGameMaster()); // for .npc follow
+    bool forcePoint = ((!isPlayerPet || owner->GetMapId() == 618) && (forceDest || !useMMaps)) || sameTransport;
+    bool ShouldGoForBack = [&]()
+    {
+        if (owner->GetEntry() == 15438) // Fire Elemental
+            return true;
+
+        if (isPlayerPet && i_target->GetVictim() != owner)
+            if (owner->GetEntry() != 416 && owner->GetEntry() != 510 && owner->GetEntry() != 37994) // can melee attack
+                return true;
+        return false;
+    }();
+
+    lastOwnerXYZ.Relocate(owner->GetPositionX(), owner->GetPositionY(), owner->GetPositionZ());
+    lastTargetXYZ.Relocate(i_target->GetPositionX(), i_target->GetPositionY(), i_target->GetPositionZ());
+
+    float dist = 0.0f;
+    float size = 0.0f;
+
+    if (!i_offset)
+    {
+        float allowedRange = MELEE_RANGE;
+        if ((!initial || (owner->movespline->Finalized() && this->GetMovementGeneratorType() == CHASE_MOTION_TYPE)) && !InBounds && i_target->IsWithinMeleeRange(owner) && i_target->IsWithinLOS(owner->GetPositionX(), owner->GetPositionY(), owner->GetPositionZ()))
+        {
+            if (owner->GetTypeId() == TYPEID_UNIT)
+                owner->ToCreature()->SetCannotReachTarget(false);
+            return;
+        }
+
+        bool inRange = i_target->GetRandomContactPoint(owner, x, y, z, forcePoint);
+        if (useMMaps && !inRange && (!isPlayerPet || i_target->GetPositionZ()-z > 50.0f))
+        {
+            //useMMaps = false;
+            if (owner->GetTypeId() == TYPEID_UNIT)
+                owner->ToCreature()->SetCannotReachTarget(true);
+            return;
+        }
+    }
+    else
+    {
+        // Pets need special handling.
+        // We need to subtract GetObjectSize() because it gets added back further down the chain
+        //  and that makes pets too far away. Subtracting it allows pets to properly
+        //  be (GetCombatReach() + i_offset) away.
+        // Only applies when i_target is pet's owner otherwise pets and mobs end up
+        //   doing a "dance" while fighting
+        if (owner->IsPet() && i_target->GetTypeId() == TYPEID_PLAYER)
+        {
+            dist = i_target->GetCombatReach();
+            size = i_target->GetCombatReach() - i_target->GetObjectSize();
+        }
+        else
+        {
+            dist = i_offset;
+            size = owner->GetObjectSize();
+        }
+
+        if ((!initial || (owner->movespline->Finalized() && this->GetMovementGeneratorType() == CHASE_MOTION_TYPE)) && i_target->IsWithinDistInMap(owner, dist) && i_target->IsWithinLOS(owner->GetPositionX(), owner->GetPositionY(), owner->GetPositionZ()))
+        {
+            if (owner->GetTypeId() == TYPEID_UNIT)
+                owner->ToCreature()->SetCannotReachTarget(false);
+            return;
+        }
+
+        // Xinef: Fix follow angle for hostile units
+        float angle = i_angle;
+        if (angle == 0.0f && owner->GetVictim() && owner->GetVictim()->GetGUID() == i_target->GetGUID())
+            angle = MapManager::NormalizeOrientation(i_target->GetAngle(owner)-i_target->GetOrientation());
+        // to at i_offset distance from target and i_angle from target facing
+        bool inRange = i_target->GetClosePoint(x, y, z, size, dist, angle, owner, forcePoint);
+        if (!inRange && (forceDest || !useMMaps) && owner->HasUnitState(UNIT_STATE_FOLLOW) && fabs(i_target->GetPositionZ() - z) > 25.0f)
+        {
+            x = i_target->GetPositionX();
+            y = i_target->GetPositionY();
+            z = i_target->GetPositionZ();
+        }
+    }
+
+    D::_addUnitStateMove(owner);
+    i_targetReached = false;
+    i_recalculateTravel = false;
+
+    if (useMMaps) // pussywizard
+    {
+        if (!forceDest)
+        {
+            if (owner->GetMapId() == 618) // pussywizard: 618 Ring of Valor
+            {
+                if (Map* map = owner->FindMap())
+                    if (Battleground* bg = ((BattlegroundMap*)map)->GetBG())
+                    {
+                        Position dest = {x, y, z, 0.0f};
+                        if (GameObject* pillar = ((BattlegroundRV*)bg)->GetPillarAtPosition(&dest))
+                        {
+                            if (pillar->GetGoState() == GO_STATE_READY && pillar->ToTransport()->GetPathProgress() == 0 || owner->GetPositionZ() > 31.0f || owner->GetTransGUID() == pillar->GetGUID())
+                            {
+                                if (pillar->GetGoState() == GO_STATE_READY && pillar->ToTransport()->GetPathProgress() == 0)
+                                    z = std::max(z, 28.28f);
+                                else
+                                    z = i_target->GetPositionZ();
+
+                                Movement::MoveSplineInit init( owner );
+                                init.MoveTo(x,y,z);
+                                if (i_angle == 0.f)
+                                    init.SetFacing(this->GetTarget());
+
+                                init.SetWalk(((D*)this)->EnableWalking());
+                                init.Launch();
+                                return;
+                            }
+                            if (pillar->GetGoState() == GO_STATE_ACTIVE || pillar->GetGoState() == GO_STATE_READY && pillar->ToTransport()->GetPathProgress() > 0)
+                            {
+                                Position pos;
+                                owner->GetFirstCollisionPositionForTotem(pos, owner->GetExactDist2d(this->GetTarget()), owner->GetAngle(this->GetTarget()) - owner->GetOrientation(), false);
+                                x = pos.GetPositionX();
+                                y = pos.GetPositionY();
+                                z = 28.28f;
+                            }
+                        }
+                    }
+            }
+        }
+
+        if (!forceDest && getMSTimeDiff(lastPathingFailMSTime, World::GetGameTimeMS()) < 1000)
+        {
+            lastOwnerXYZ.Relocate(-5000.0f, -5000.0f, -5000.0f);
+            return;
+        }
+
+        if (ShouldGoForBack)
+        {
+            bool inRange = i_target->GetClosePoint(x, y, z, size, dist, float(M_PI), owner, forcePoint);
+            if (!inRange && (forceDest || !useMMaps) && owner->HasUnitState(UNIT_STATE_FOLLOW) && fabs(i_target->GetPositionZ() - z) > 25.0f)
+            {
+                x = i_target->GetPositionX();
+                y = i_target->GetPositionY();
+                z = i_target->GetPositionZ();
+            }
+        }
+
+        AsyncPathGeneratorContext context( owner, { x, y, z }, forceDest );
+        m_pathRequest = std::make_pair( Movement::GetPathGenerator().RequestPath( context ), forceDest );
+        return;
+    }
+
+    Movement::MoveSplineInit init( owner );
+    init.MoveTo(x,y,z);
+    // Using the same condition for facing target as the one that is used for SetInFront on movement end
+    // - applies to ChaseMovementGenerator mostly
+    if (i_angle == 0.f)
+        init.SetFacing(this->GetTarget());
+
+    if (owner->GetTypeId() == TYPEID_UNIT)
+        owner->ToCreature()->SetCannotReachTarget(false);
+
+    init.SetWalk(((D*)this)->EnableWalking());
+    init.Launch();
+}
+
+template<class T, typename D>
+bool TargetedMovementGeneratorMedium<T, D>::_handleAsyncPathRequest( T* owner )
+{
+    auto & request = m_pathRequest.first;
+    if ( request.IsValid() )
+    {
+        if ( request.IsReady() )
+        {
+            bool forceDest = m_pathRequest.second;
+
+            auto path = std::move( request.GetPath() );
+
+            float maxDist = MELEE_RANGE + owner->GetCombatReach() + i_target->GetCombatReach();
+
+            auto & points = path.points;
+
+            bool isPlayerPet = owner->IsPet() && IS_PLAYER_GUID( owner->GetOwnerGUID() );
+            if ( !forceDest && ( path.type & PATHFIND_NOPATH || !i_offset && !isPlayerPet && i_target->GetExactDistSq( points.back().x, points.back().y, points.back().z ) > maxDist*maxDist ) )
+            {
+                if ( Creature * creature = owner->ToCreature() )
+                    creature->SetCannotReachTarget( true );
+
+                return true;
+            }
+
+            if ( Creature * creature = owner->ToCreature() )
+                creature->SetCannotReachTarget( false );
+
+                // Fix for Algalon
+            if ( owner->GetTypeId() == TYPEID_UNIT && owner->GetEntry() == 32871 )
+            {
+                if ( i_target->GetPositionZ() >= 418.5f )
+                    return true;
+            }
+
+                // Fix for Razorscale
+            if ( owner->IsSummon() && i_target->GetEntry() == 33186 )
+            {
+                if ( i_target->GetPositionZ() >= 395.0f )
+                    return true;
+            }
+
+                // Ring of Valor
+            if ( owner->IsSummon() && owner->GetMapId() == 618 )  // pussywizard: 618 Ring of Valor
+            {
+                    float petZ = owner->GetPositionZ();
+                    float tarZ = i_target->GetPositionZ();
+
+                if ( petZ > 32.0f && i_target->IsFalling() || fabs( petZ - tarZ ) > 3.0f )
+                    return true;
+            }
+
+            Movement::MoveSplineInit init( owner );
+            init.MovebyPath( points );
+            if ( i_angle == 0.f )
+            {
+                init.SetFacing(this->GetTarget() );
+            }
+
+            init.SetWalk( ( ( D* )this )->EnableWalking() );
+            init.Launch();
+
+            return true;
+        }
+
+        return true;
+    }
+
+    return false;
+}
+
+template<class T, typename D>
+bool TargetedMovementGeneratorMedium<T,D>::DoUpdate(T* owner, uint32 time_diff)
+{
+    if (!i_target.isValid() || !i_target->IsInWorld())
+        return false;
+
+    if (!owner || !owner->IsAlive())
+        return false;
+
+    if ( owner->HasUnitState(UNIT_STATE_NOT_MOVE) )
+    {
+        //! In some cases when unit teleports out somewhere and sets root to self(crap script, what you gonna do)
+        //! just before the root is set it will call cannotreachtarget in _setTargetLocation
+        //! and then it will never enter _setEnterLocation to correct that because it is rooted
+        //! so if creature cant move then do not allow this function to execute ever
+        if (owner->GetTypeId() == TYPEID_UNIT)
+            owner->ToCreature()->SetCannotReachTarget(false);
+
+        D::_clearUnitStateMove(owner);
+
+        auto & request = m_pathRequest.first;
+        return request.Invalidate(), true;
+    }
+
+    // prevent movement while casting spells with cast time or channel time
+    if ( owner->HasUnitState(UNIT_STATE_CASTING))
+    {
+        bool stop = true;
+        if (Spell* spell = owner->GetCurrentSpell(CURRENT_CHANNELED_SPELL))
+            if (!(spell->GetSpellInfo()->ChannelInterruptFlags & (AURA_INTERRUPT_FLAG_MOVE | AURA_INTERRUPT_FLAG_TURNING)) && !(spell->GetSpellInfo()->InterruptFlags & SPELL_INTERRUPT_FLAG_MOVEMENT))
+                stop = false;
+
+        if (stop)
+        {
+            // Xinef: delay distance recheck in case of succeeding casts
+            i_recheckDistance.Reset(300);
+            if (!owner->IsStopped())
+                owner->StopMoving();
+
+            auto & request = m_pathRequest.first;
+            return request.Invalidate(), true;
+        }
+    }
+
+    if ( _handleAsyncPathRequest( owner ) )
+        return true;
+
+    // prevent crash after creature killed pet
+    if (static_cast<D*>(this)->_lostTarget(owner))
+    {
+        D::_clearUnitStateMove(owner);
+        return true;
+    }
+
+    i_recheckDistanceForced.Update(time_diff);
+    if (i_recheckDistanceForced.Passed())
+    {
+        i_recheckDistanceForced.Reset(2500);
+        lastOwnerXYZ.Relocate(-5000.0f, -5000.0f, -5000.0f);
+    }
+
+    i_recheckDistance.Update(time_diff);
+    if (i_recheckDistance.Passed())
+    {
+        i_recheckDistance.Reset(50);
+        //More distance let have better performance, less distance let have more sensitive reaction at target move.
+        float allowed_dist_sq = i_target->GetObjectSize() + owner->GetObjectSize() + MELEE_RANGE - 0.5f;
+
+        // xinef: if offset is negative (follow distance is smaller than just object sizes), reduce minimum allowed distance which is based purely on object sizes
+        if (i_offset < 0.0f)
+        {
+            allowed_dist_sq += i_offset;
+            allowed_dist_sq = std::max<float>(0.0f, allowed_dist_sq);
+        }
+
+        allowed_dist_sq *= allowed_dist_sq;
+
+        G3D::Vector3 dest = owner->movespline->FinalDestination();
+        if (owner->movespline->onTransport)
+            if (TransportBase* transport = owner->GetDirectTransport())
+                transport->CalculatePassengerPosition(dest.x, dest.y, dest.z);
+
+        float dist = (dest - G3D::Vector3(i_target->GetPositionX(),i_target->GetPositionY(),i_target->GetPositionZ())).squaredLength();
+        float targetMoveDistSq = i_target->GetExactDistSq(&lastTargetXYZ);
+
+        bool isInBounds = false;
+        if (i_targetReached && ValidateBackout(owner, *i_target))
+        {
+            if (i_recheckBackout.Update(time_diff))
+                if (IsInBounds(owner, *i_target))
+                {
+                    i_recheckBackout.Reset(1000);
+                    isInBounds = true;
+                }
+        }
+
+        if (dist >= allowed_dist_sq || (!i_offset && (targetMoveDistSq >= 1.5f*1.5f || isInBounds)))
+            if (targetMoveDistSq >= 0.1f*0.1f || owner->GetExactDistSq(&lastOwnerXYZ) >= 0.1f*0.1f)
+                _setTargetLocation(owner, false, isInBounds);
+    }
+
+    if (owner->movespline->Finalized())
+    {
+        static_cast<D*>(this)->MovementInform(owner);
+        if (i_angle == 0.f && !owner->HasInArc(0.01f, this->GetTarget()))
+            owner->SetInFront(this->GetTarget());
+
+        if (!i_targetReached)
+        {
+            i_targetReached = true;
+            static_cast<D*>(this)->_reachTarget(owner);
+        }
+    }
+    else
+    {
+        if (i_recalculateTravel)
+            _setTargetLocation(owner, false);
+    }
+    return true;
+}
+
+//-----------------------------------------------//
+template<class T>
+void ChaseMovementGenerator<T>::_reachTarget(T* owner)
+{
+    if (owner->IsWithinMeleeRange(this->GetTarget()))
+        owner->Attack(this->GetTarget(), true);
+}
+
+template<>
+void ChaseMovementGenerator<Player>::DoInitialize(Player* owner)
+{
+    owner->AddUnitState(UNIT_STATE_CHASE | UNIT_STATE_CHASE_MOVE);
+    _setTargetLocation(owner, true);
+}
+
+template<>
+void ChaseMovementGenerator<Creature>::DoInitialize(Creature* owner)
+{
+    owner->SetWalk(false);
+    owner->AddUnitState(UNIT_STATE_CHASE | UNIT_STATE_CHASE_MOVE);
+    _setTargetLocation(owner, true);
+}
+
+template<class T>
+void ChaseMovementGenerator<T>::DoFinalize(T* owner)
+{
+    owner->ClearUnitState(UNIT_STATE_CHASE | UNIT_STATE_CHASE_MOVE);
+}
+
+template<class T>
+void ChaseMovementGenerator<T>::DoReset(T* owner)
+{
+    DoInitialize(owner);
+}
+
+template<class T>
+void ChaseMovementGenerator<T>::MovementInform(T* /*unit*/)
+{
+}
+
+template<>
+void ChaseMovementGenerator<Creature>::MovementInform(Creature* unit)
+{
+    // Pass back the GUIDLow of the target. If it is pet's owner then PetAI will handle
+    if (unit->AI())
+        unit->AI()->MovementInform(CHASE_MOTION_TYPE, this->GetTarget()->GetGUIDLow());
+}
+
+//-----------------------------------------------//
+template bool TargetedMovementGeneratorMedium<Player, ChaseMovementGenerator<Player> >::_handleAsyncPathRequest( Player* );
+template bool TargetedMovementGeneratorMedium<Creature, ChaseMovementGenerator<Creature> >::_handleAsyncPathRequest( Creature* );
+template void TargetedMovementGeneratorMedium<Player,ChaseMovementGenerator<Player> >::_setTargetLocation(Player*, bool, bool);
+template void TargetedMovementGeneratorMedium<Creature,ChaseMovementGenerator<Creature> >::_setTargetLocation(Creature*, bool, bool);
+template bool TargetedMovementGeneratorMedium<Player,ChaseMovementGenerator<Player> >::DoUpdate(Player*, uint32);
+template bool TargetedMovementGeneratorMedium<Creature,ChaseMovementGenerator<Creature> >::DoUpdate(Creature*, uint32);
+
+template void ChaseMovementGenerator<Player>::_reachTarget(Player*);
+template void ChaseMovementGenerator<Creature>::_reachTarget(Creature*);
+template void ChaseMovementGenerator<Player>::DoFinalize(Player*);
+template void ChaseMovementGenerator<Creature>::DoFinalize(Creature*);
+template void ChaseMovementGenerator<Player>::DoReset(Player*);
+template void ChaseMovementGenerator<Creature>::DoReset(Creature*);
+template void ChaseMovementGenerator<Player>::MovementInform(Player*);

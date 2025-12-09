@@ -1,0 +1,16 @@
+DROP TABLE IF EXISTS `mythic_player_rewards`;
+CREATE TABLE IF NOT EXISTS `mythic_player_rewards`
+(
+	`PlayerGUID` INT(10) UNSIGNED NOT NULL DEFAULT 0 PRIMARY KEY,
+	`RewardBracketOne` INT(2) UNSIGNED NOT NULL DEFAULT 0,
+	`RewardBracketTwo` INT(2) UNSIGNED NOT NULL DEFAULT 0,
+	`RewardBracketThree` INT(2) UNSIGNED NOT NULL DEFAULT 0,
+	`MythicPower` INT UNSIGNED NOT NULL DEFAULT 0
+) Engine=InnoDB DEFAULT CHARSET=utf8;
+
+DROP TABLE IF EXISTS `character_mythic_transmogs`;
+CREATE TABLE IF NOT EXISTS `character_mythic_transmogs`
+(
+	`PlayerGUID` INT(10) UNSIGNED NOT NULL DEFAULT 0,
+	`ItemEntry` INT(2) UNSIGNED NOT NULL DEFAULT 0
+) Engine=InnoDB DEFAULT CHARSET=utf8;

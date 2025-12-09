@@ -1,0 +1,2 @@
+-- DB/Instance: Scholomance - old treasure chest gate should be opened after activating torch https://github.com/SunwellTracker/issues/issues/3254
+UPDATE `smart_scripts` SET `action_param1` = 0 WHERE `entryorguid` = 177385 AND `id` = 0;

@@ -1,0 +1,3 @@
+ALTER TABLE `item_instance`
+	ADD COLUMN `transmog` INT UNSIGNED NOT NULL DEFAULT '0' AFTER `text`,
+	ADD COLUMN `enchant` INT UNSIGNED NOT NULL DEFAULT '0' AFTER `transmog`;

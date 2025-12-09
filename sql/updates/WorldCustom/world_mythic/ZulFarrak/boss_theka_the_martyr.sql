@@ -1,0 +1,12 @@
+SET @THEKA_ANUB_TRIGGER:= 91502;
+SET @THEKA_POISON_TRIGGER:= 91503;
+
+DELETE FROM `creature_template` WHERE `entry` IN (@THEKA_ANUB_TRIGGER, @THEKA_POISON_TRIGGER);
+INSERT INTO `creature_template` (`entry`, `difficulty_entry_1`, `difficulty_entry_2`, `difficulty_entry_3`, `KillCredit1`, `KillCredit2`, `modelid1`, `modelid2`, `modelid3`, `modelid4`, `name`, `subname`, `IconName`, `gossip_menu_id`, `minlevel`, `maxlevel`, `exp`, `faction`, `npcflag`, `speed_walk`, `speed_run`, `scale`, `rank`, `mindmg`, `maxdmg`, `dmgschool`, `attackpower`, `dmg_multiplier`, `baseattacktime`, `rangeattacktime`, `unit_class`, `unit_flags`, `unit_flags2`, `dynamicflags`, `family`, `trainer_type`, `trainer_spell`, `trainer_class`, `trainer_race`, `minrangedmg`, `maxrangedmg`, `rangedattackpower`, `type`, `type_flags`, `lootid`, `pickpocketloot`, `skinloot`, `resistance1`, `resistance2`, `resistance3`, `resistance4`, `resistance5`, `resistance6`, `spell1`, `spell2`, `spell3`, `spell4`, `spell5`, `spell6`, `spell7`, `spell8`, `PetSpellDataId`, `VehicleId`, `mingold`, `maxgold`, `AIName`, `MovementType`, `InhabitType`, `HoverHeight`, `Health_mod`, `Mana_mod`, `Armor_mod`, `RacialLeader`, `questItem1`, `questItem2`, `questItem3`, `questItem4`, `questItem5`, `questItem6`, `movementId`, `RegenHealth`, `mechanic_immune_mask`, `flags_extra`, `ScriptName`, `MythicTemplateId`, `VerifiedBuild`) VALUES
+(@THEKA_ANUB_TRIGGER, 0, 0, 0, 0, 0, 30800, 0, 0, 0, 'Theka the Martyr', 'anub trigger', '', 0, 83, 83, 0, 14, 0, 1, 1.14286, 0.6, 0, 0, 0, 0, 0, 1, 2000, 2000, 1, 0, 2048, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 3, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 121, 1, 0, 0, 'npc_theka_anub_scarab', 0, 12340),
+(@THEKA_POISON_TRIGGER, 0, 0, 0, 0, 0, 11686, 0, 0, 0, 'TTheka the Martyr', 'trigger', '', 0, 83, 83, 0, 14, 0, 1, 1.14286, 0.6, 0, 0, 0, 0, 0, 1, 2000, 2000, 1, 0, 2048, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 3, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 121, 1, 0, 128, 'npc_theka_poison_trigger', 0, 12340);
+
+DELETE FROM `spell_script_names` WHERE `spell_id` = 53467;
+INSERT INTO `spell_script_names` VALUES
+(53467, "spell_theka_leeching_swarm_aura");
+

@@ -1,0 +1,7 @@
+CREATE TABLE `character_screen_script` (
+  `Script` text NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+INSERT INTO character_screen_script (Script) VALUES
+-- PTR Message
+('<html> <body> <h1 align=''center''>Welcome to |cFF5b94ffSindragosa PTR|r!</h1><br/> <p> This is a public test realm of upcoming Wrath of the Lich King realm, Sindragosa.<br/> <br/> Realm setup:<br/> |TInterface/Icons/achievement_level_80:16:16:0:0:64:64:4:60:4:60|t |cFF5b94ffXP Rate|r: x7 <br/>|TInterface/Icons/trade_blacksmithing:16:16:0:0:64:64:4:60:4:60|t |cFF5b94ffProfession Rate:|r x2 (1-375) <br/>|TInterface/Icons/inv_misc_bag_10_blue:16:16:0:0:64:64:4:60:4:60|t |cFF5b94ffDrop Rate: |rx2 (excluding Northrend) <br/><br/> Quick Start:<br/>- You start at level 1, but you can obtain maximum level and gear on GM Island.<br/>- Use |cFF5b94ff.tele gmisland|r command to teleport to GM Island. <br/>- Use |cFF5b94ff.buff|r command to buff yourself when solo testing difficult content.<br/>- Report all bugs you have found to the <a href=''https://github.com/GameFreedomGG/Sindragosa-SII/issues''>bugtracker.</a><br/><br/> Useful links:<br/> <a href=''https://sunwell.org''>Sunwell Website</a><br/> <a href=''https://discord.gg/worldofwarcraft''>Discord</a><br/> <a href=''https://github.com/GameFreedomGG/Sindragosa-SII/issues''>BugTracker</a><br/> </p></body></html>');

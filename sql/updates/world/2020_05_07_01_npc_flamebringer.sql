@@ -1,0 +1,1 @@
+UPDATE `creature_template` SET `AIName` = '', `ScriptName` = "npc_flamebringer" WHERE `entry` = 27292;

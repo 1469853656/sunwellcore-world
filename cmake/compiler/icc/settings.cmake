@@ -1,0 +1,15 @@
+if(PLATFORM EQUAL 32)
+  add_compile_options("-axSSE2")
+else()
+  add_compile_options("-xSSE2")
+endif()
+
+if( WITH_WARNINGS )
+  add_compile_options("-w1")
+  message(STATUS "ICC: All warnings enabled")
+endif()
+
+if( WITH_COREDEBUG )
+  add_compile_options("-g")
+  message(STATUS "ICC: Debug-flag set (-g)")
+endif()

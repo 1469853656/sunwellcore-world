@@ -1,0 +1,11 @@
+DROP TABLE IF EXISTS `solo_queue_matching_logs`;
+CREATE TABLE `solo_queue_matching_logs` (
+  `match_id` INT UNSIGNED NOT NULL DEFAULT '0',
+  `match_time` TIMESTAMP NOT NULL,
+  `teamA_leaderTeamID` INT UNSIGNED NOT NULL DEFAULT '0',
+  `teamH_leaderTeamID` INT UNSIGNED NOT NULL DEFAULT '0',
+  `teamA_MMR` INT UNSIGNED NOT NULL DEFAULT '0',
+  `teamH_MMR` INT UNSIGNED NOT NULL DEFAULT '0',
+  `teamA_waitTimer` INT UNSIGNED NOT NULL DEFAULT '0',
+  `teamH_waitTimer` INT UNSIGNED NOT NULL DEFAULT '0'
+) ENGINE=INNODB;

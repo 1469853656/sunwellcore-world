@@ -1,0 +1,1 @@
+UPDATE `smart_scripts` SET `action_param1`=45254 WHERE `entryorguid`=2875600 AND `source_type`=9 AND `id`=14;

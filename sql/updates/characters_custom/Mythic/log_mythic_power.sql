@@ -1,0 +1,9 @@
+DROP TABLE IF EXISTS `log_mythicpower`;
+CREATE TABLE `log_mythicpower` (
+	`time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	`guid` INT(11) UNSIGNED NOT NULL,
+	`type` INT(11) UNSIGNED NOT NULL,
+	`data1` INT(11) UNSIGNED NOT NULL,
+	`data2` INT(11) NOT NULL,
+	`value` INT(11) NOT NULL
+);

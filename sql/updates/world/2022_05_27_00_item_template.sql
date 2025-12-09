@@ -1,0 +1,1 @@
+UPDATE `item_template` SET `Quality` = 1 WHERE `entry` = 1195;

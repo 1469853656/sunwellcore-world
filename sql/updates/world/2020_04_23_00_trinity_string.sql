@@ -1,0 +1,1 @@
+UPDATE `trinity_string` SET `content_default`='Name: %s (%s)  GUID: %u, Flags: %s' WHERE  `entry`=1150;

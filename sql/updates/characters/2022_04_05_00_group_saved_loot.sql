@@ -1,0 +1,15 @@
+ALTER TABLE `group_saved_loot`
+DROP COLUMN `difficultyId`,
+DROP COLUMN `summoned`,
+DROP COLUMN `position_x`,
+DROP COLUMN `position_y`,
+DROP COLUMN `position_z`,
+CHANGE `creatureId` `objectId` INT DEFAULT 0 NOT NULL,
+ADD COLUMN `isCreature` TINYINT DEFAULT 0 NOT NULL AFTER `objectId`,
+CHANGE `mapId` `mapId` INT DEFAULT 0 NOT NULL AFTER `isCreature`,
+CHANGE `itemId` `itemId` INT DEFAULT 0 NOT NULL AFTER `instanceId`,
+CHANGE `itemCount` `itemCount` INT DEFAULT 0 NULL,
+CHANGE `playerGuids` `playerGuids` LONGTEXT NULL AFTER `itemCount`,
+ADD COLUMN `summonPositionString` TEXT NULL AFTER `playerGuids`,
+DROP PRIMARY KEY,
+ADD PRIMARY KEY (`objectId`, `isCreature`, `mapId`, `instanceId`, `itemId`); 

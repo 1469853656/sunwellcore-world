@@ -1,0 +1,1 @@
+DELETE FROM `npc_trainer` WHERE `entry` = 200019 AND `spell` IN (51426,51427,51428,51429);

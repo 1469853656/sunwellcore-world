@@ -1,0 +1,9 @@
+SET @GRAND_MAGUS_FIREBALL:= 91526;
+
+DELETE FROM `creature_template` WHERE `entry` = @GRAND_MAGUS_FIREBALL;
+INSERT INTO `creature_template` (`entry`, `difficulty_entry_1`, `difficulty_entry_2`, `difficulty_entry_3`, `KillCredit1`, `KillCredit2`, `modelid1`, `modelid2`, `modelid3`, `modelid4`, `name`, `subname`, `IconName`, `gossip_menu_id`, `minlevel`, `maxlevel`, `exp`, `faction`, `npcflag`, `speed_walk`, `speed_run`, `scale`, `rank`, `mindmg`, `maxdmg`, `dmgschool`, `attackpower`, `dmg_multiplier`, `baseattacktime`, `rangeattacktime`, `unit_class`, `unit_flags`, `unit_flags2`, `dynamicflags`, `family`, `trainer_type`, `trainer_spell`, `trainer_class`, `trainer_race`, `minrangedmg`, `maxrangedmg`, `rangedattackpower`, `type`, `type_flags`, `lootid`, `pickpocketloot`, `skinloot`, `resistance1`, `resistance2`, `resistance3`, `resistance4`, `resistance5`, `resistance6`, `spell1`, `spell2`, `spell3`, `spell4`, `spell5`, `spell6`, `spell7`, `spell8`, `PetSpellDataId`, `VehicleId`, `mingold`, `maxgold`, `AIName`, `MovementType`, `InhabitType`, `HoverHeight`, `Health_mod`, `Mana_mod`, `Armor_mod`, `RacialLeader`, `questItem1`, `questItem2`, `questItem3`, `questItem4`, `questItem5`, `questItem6`, `movementId`, `RegenHealth`, `mechanic_immune_mask`, `flags_extra`, `ScriptName`, `MythicTemplateId`, `VerifiedBuild`) VALUES
+(@GRAND_MAGUS_FIREBALL, 0, 0, 0, 0, 0, 26767, 0, 0, 0, 'Grand Magus Telestra', 'fireball trigger', '', 0, 83, 83, 2, 16, 0, 1, 2.8, 1, 1, 304, 436, 0, 296, 10, 2000, 2000, 2, 32832, 2048, 0, 0, 0, 0, 0, 0, 268, 399, 40, 7, 104, 26731, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4155, 6925, '', 0, 3, 1, 12.5, 15, 1, 0, 0, 0, 0, 0, 0, 0, 144, 1, 650854271, 2097152, 'npc_telestra_fire_orb_mythic', 0, 12340);
+
+DELETE FROM `spell_script_names` WHERE `spell_id` = 32820;
+INSERT INTO `spell_script_names` VALUES
+(32820, "spell_magus_mythic_polymorph_explosion");

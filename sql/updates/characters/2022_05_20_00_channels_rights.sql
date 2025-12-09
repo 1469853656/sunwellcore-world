@@ -1,0 +1,3 @@
+ALTER TABLE `channels_rights`
+	CHANGE COLUMN `name` `ChannelID` INT(10) UNSIGNED NOT NULL FIRST;
+	

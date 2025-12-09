@@ -1,0 +1,9 @@
+CREATE TABLE `log_mute` (
+	`AccountID` INT(10) UNSIGNED NOT NULL,
+	`CharacterName` VARCHAR(50) NOT NULL,
+	`MuteReason` VARCHAR(150) NOT NULL,
+	`MutedBy` VARCHAR(50) NOT NULL,
+	`DurationMinutes` INT(10) UNSIGNED NOT NULL,
+	`MuteDate` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	PRIMARY KEY (`AccountID`, `CharacterName`)
+);

@@ -1,0 +1,1 @@
+UPDATE `item_template` SET `flagsCustom` = `flagsCustom` | 0x08 WHERE `entry` IN (43662, 43665, 43668, 43669, 43670, 43693, 43697, 43699, 43724, 43726, 43821, 43823, 48418, 43665);

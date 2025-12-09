@@ -1,0 +1,234 @@
+
+
+#ifndef SUNWELLCORE_CHAT_H
+#define SUNWELLCORE_CHAT_H
+
+#include "SharedDefines.h"
+#include "WorldSession.h"
+#include "StringFormat.h"
+
+#include <vector>
+
+class ChatHandler;
+class Creature;
+class Group;
+class Player;
+class Unit;
+class WorldSession;
+class WorldObject;
+
+struct GameTele;
+
+enum CommandUsage
+{
+    CMD_INGAME,
+    CMD_WEB,
+    CMD_CLI
+};
+
+class ChatCommand
+{
+    typedef bool (*pHandler)(ChatHandler*, char const*);
+
+public:
+    ChatCommand(char const* name, uint32 securityLevel, CommandUsage usage, pHandler handler, std::string help, std::vector<ChatCommand> childCommands = std::vector<ChatCommand>())
+        : Name(name)
+        , SecurityLevel(securityLevel)
+        , m_usage(usage)
+        , Handler(handler)
+        , Help(std::move(help))
+        , ChildCommands(std::move(childCommands))
+    {
+    }
+
+    char const* Name;
+    uint32 SecurityLevel; // function pointer required correct align (use uint32)
+    CommandUsage m_usage;
+    pHandler Handler;
+    std::string Help;
+    std::vector<ChatCommand> ChildCommands;
+};
+
+struct TextBuilderResult
+{
+    void SetLanguage(WorldPacket* packet, Language language)
+    {
+        packet->put<int32>(receiverOffset, language);
+    }
+
+    void SetReceiverGuid(WorldPacket* packet, uint64 guid)
+    {
+        packet->put<uint64>(receiverOffset, guid);
+    }
+
+    size_t languageOffset = 0u;
+    size_t receiverOffset = 0u;
+};
+
+class ChatHandler
+{
+public:
+    WorldSession* GetSession() { return m_session; }
+    explicit ChatHandler(WorldSession* session)
+        : m_session(session)
+        , sentErrorMessage(false)
+    {
+    }
+    virtual ~ChatHandler() { }
+
+    // Builds chat packet and returns receiver guid position in the packet to substitute in whisper builders
+    static TextBuilderResult BuildChatPacket(WorldPacket& data, ChatMsg chatType, Language language, uint64 senderGUID, uint64 receiverGUID, std::string const& message, uint8 chatTag,
+        std::string const& senderName = "", std::string const& receiverName = "",
+        uint32 achievementId = 0, bool gmMessage = false, std::string const& channelName = "");
+
+    // Builds chat packet and returns receiver guid position in the packet to substitute in whisper builders
+    static TextBuilderResult BuildChatPacket(WorldPacket& data, ChatMsg chatType, Language language, WorldObject const* sender, WorldObject const* receiver, std::string const& message, uint32 achievementId = 0, std::string const& channelName = "", LocaleConstant locale = DEFAULT_LOCALE);
+
+    static char* LineFromMessage(char*& pos)
+    {
+        char* start = strtok(pos, "\n");
+        pos         = nullptr;
+        return start;
+    }
+
+    // function with different implementation for chat/console
+    virtual const char* GetTrinityString(int32 entry) const;
+    virtual void SendSysMessage(const char* str);
+
+    void SendSysMessage(int32 entry);
+    void PSendSysMessage(const char* format, ...) ATTR_PRINTF(2, 3);
+    void PSendSysMessage(int32 entry, ...);
+    std::string PGetParseString(int32 entry, ...) const;
+    template<typename FormatString, typename... Args>
+    void SendFormattedSysMessage(FormatString const& fmt_string, Args... args)
+    {
+        SendSysMessage(Trinity::FMTStringFormat(fmt_string, std::forward<Args>(args)...).c_str());
+    }
+
+    bool ParseCommands(const char* text);
+
+    static std::vector<ChatCommand> const& getCommandTable();
+
+    bool isValidChatMessage(const char* msg);
+    void SendGlobalSysMessage(const char* str);
+
+    bool hasStringAbbr(const char* name, const char* part);
+
+    // function with different implementation for chat/console
+    virtual bool isAvailable(ChatCommand const& cmd) const;
+    virtual std::string GetNameLink() const { return GetNameLink(m_session->GetPlayer()); }
+    virtual bool needReportToTarget(Player* chr) const;
+    virtual LocaleConstant GetSessionDbcLocale() const;
+    virtual int GetSessionDbLocaleIndex() const;
+
+    bool HasLowerSecurity(Player* target, uint64 guid, bool strong = false);
+    bool HasLowerSecurityAccount(WorldSession* target, uint32 account, bool strong = false);
+
+    void SendGlobalGMSysMessage(const char* str);
+    Player* getSelectedPlayer();
+    Creature* getSelectedCreature();
+    Unit* getSelectedUnit();
+    WorldObject* getSelectedObject();
+    // Returns either the selected player or self if there is no selected player
+    Player* getSelectedPlayerOrSelf();
+
+    char* extractKeyFromLink(char* text, char const* linkType, char** something1 = nullptr);
+    char* extractKeyFromLink(char* text, char const* const* linkTypes, int* found_idx, char** something1 = nullptr);
+
+    // if args have single value then it return in arg2 and arg1 == NULL
+    void extractOptFirstArg(char* args, char** arg1, char** arg2);
+    char* extractQuotedArg(char* args);
+
+    uint32 extractSpellIdFromLink(char* text);
+    uint64 extractGuidFromLink(char* text);
+    GameTele const* extractGameTeleFromLink(char* text);
+    bool GetPlayerGroupAndGUIDByName(const char* cname, Player*& player, Group*& group, uint64& guid, bool offline = false);
+    std::string extractPlayerNameFromLink(char* text);
+    // select by arg (name/link) or in-game selection online/offline player
+    bool extractPlayerTarget(char* args, Player** player, uint64* player_guid = nullptr, std::string* player_name = nullptr);
+
+    std::string playerLink(std::string const& name) const { return m_session ? "|cffffffff|Hplayer:" + name + "|h[" + name + "]|h|r" : name; }
+    std::string GetNameLink(Player* chr) const;
+
+    GameObject* GetNearbyGameObject();
+    GameObject* GetObjectGlobalyWithGuidOrNearWithDbGuid(uint32 lowguid, uint32 entry);
+    bool HasSentErrorMessage() const { return sentErrorMessage; }
+    void SetSentErrorMessage(bool val) { sentErrorMessage = val; }
+    static bool LoadCommandTable() { return load_command_table; }
+    static void SetLoadCommandTable(bool val) { load_command_table = val; }
+
+    bool ShowHelpForCommand(std::vector<ChatCommand> const& table, const char* cmd);
+    virtual char const* GetName() const;
+    virtual uint32 getOwnerGuid() const;
+
+protected:
+    explicit ChatHandler()
+        : m_session(nullptr)
+        , sentErrorMessage(false)
+    {
+    } // for CLI subclass
+    static bool SetDataForCommandInTable(std::vector<ChatCommand>& table, const char* text, uint32 permission, std::string const& help, std::string const& fullcommand);
+    bool ExecuteCommandInTable(std::vector<ChatCommand> const& table, const char* text, std::string& fullcmd);
+    bool ShowHelpForSubCommands(std::vector<ChatCommand> const& table, char const* cmd, char const* subcmd);
+
+private:
+    WorldSession* m_session; // != NULL for chat command call and NULL for CLI command
+
+    // common global flag
+    static bool load_command_table;
+    bool sentErrorMessage;
+};
+
+class CliHandler : public ChatHandler
+{
+public:
+    typedef void Print(void*, char const*);
+    explicit CliHandler(void* callbackArg, Print* zprint)
+        : m_callbackArg(callbackArg)
+        , m_print(zprint)
+    {
+    }
+
+    // overwrite functions
+    const char* GetTrinityString(int32 entry) const override;
+    bool isAvailable(ChatCommand const& cmd) const override;
+    void SendSysMessage(const char* str) override;
+    std::string GetNameLink() const override;
+    bool needReportToTarget(Player* chr) const override;
+    LocaleConstant GetSessionDbcLocale() const override;
+    int GetSessionDbLocaleIndex() const override;
+
+private:
+    void* m_callbackArg;
+    Print* m_print;
+};
+
+class WebCommandHandler : public ChatHandler
+{
+public:
+    explicit WebCommandHandler(uint32 ownerGuid, uint32 targetGuid, uint32 access)
+        : m_ownerGuid(ownerGuid)
+        , m_targetGuid(targetGuid)
+        , m_access(access)
+        , m_reported(false)
+    {
+    }
+
+    // overwrite functions
+    const char* GetTrinityString(int32 entry) const override;
+    bool isAvailable(ChatCommand const& cmd) const override;
+    void SendSysMessage(const char* str) override;
+    std::string GetNameLink() const override;
+    bool needReportToTarget(Player* chr) const override;
+    LocaleConstant GetSessionDbcLocale() const override;
+    int GetSessionDbLocaleIndex() const override;
+
+    void CommandWrapper(const char* cmd);
+    uint32 getOwnerGuid() const override { return m_ownerGuid; };
+
+private:
+    uint32 m_ownerGuid, m_targetGuid, m_access;
+    bool m_reported;
+};
+
+#endif

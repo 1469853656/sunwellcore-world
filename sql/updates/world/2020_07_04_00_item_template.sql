@@ -1,0 +1,1 @@
+UPDATE `item_template` SET `Flags` = `Flags` & ~0x080000 WHERE `entry` IN (45862, 45880, 45881, 45987);

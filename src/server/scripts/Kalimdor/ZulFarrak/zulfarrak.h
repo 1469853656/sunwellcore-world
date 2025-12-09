@@ -1,0 +1,76 @@
+#ifndef DEF_ZULFARRAK_H
+#define DEF_ZULFARRAK_H
+
+/** ToDo witch doctor zumrah areatrigger id: 962 **/
+enum ZulFarrakBossData : uint32
+{
+    BOSS_THEKA_MARTYR               = 0,
+    BOSS_ANTUSUL,
+    BOSS_WITCH_DOCTOR_ZUMRAH,
+    BOSS_SANDFURY_EXECUTIONER,
+    BOSS_STAIRS_EVENT,
+    BOSS_RUUZLU,
+    BOSS_UKORZ_SANDSCALP,
+    BOSS_HYDROMANCER_VELRATHA,
+    BOSS_GAHZRILLA,
+    BOSS_SANDSCLAP_RUUZLU,
+    BOSS_GOBLIN_STAIRS,
+
+    ZULFARRAK_BOSS_MAX
+};
+
+enum ZulFarrakBossEntry
+{
+    NPC_THEKA_MARTYR        = 7272,
+    NPC_ZUM_RAH             = 7271,
+    NPC_SERGEANT_BLY        = 7604,
+    NPC_RAVEN               = 7605,
+    NPC_ORO                 = 7606,
+    NPC_WEEGLI              = 7607,
+    NPC_MURTA               = 7608,
+    NPC_GAHZRILLA           = 7273,
+    NPC_ANTUSUL             = 8127,
+    NPC_NEKRUM              = 7796,
+    NPC_SEZZIZ              = 7275,
+
+    NPC_ZF_RUUZLU           = 7797,
+    NPC_ZF_UKORZ            = 7267,
+
+    // Misc
+    SPELL_RUUZLU_KNEEL      = 68442,
+    SPELL_RUUZLU_TORNADO    = 21990
+};
+
+enum ZulFarrakData
+{
+    GO_FINAL_BOSS_ROOM_DOOR     = 146084,
+    GO_SHALLOW_GRAVE            = 128403,
+    GO_SHALLOW_GRAVE_2          = 128308,
+    GO_STAIR_EVENT_CAGES_1      = 141070,
+    GO_STAIR_EVENT_CAGES_2      = 141071,
+    GO_STAIR_EVENT_CAGES_3      = 141072,
+    GO_STAIR_EVENT_CAGES_4      = 141073,
+    GO_STAIR_EVENT_CAGES_5      = 141074,
+    SPELL_CREATURE_OF_NIGHTMARE_ZF = 25806,
+    SPELL_ZOMBIE_UKORZ_BRAIN_HACKER = 17148,
+
+    EVENT_PYRAMID               = 1,
+    EVENT_GAHZRILLA,
+
+    PATH_ADDS                   = 81553,
+
+    ACTION_LEAVE_CAGE           = 100,
+    ACTION_BEGIN_STAIR_EVENT,
+    ACTION_MARK_AS_STAIRS_ADD,
+    ACTION_MOVE_DOWNSTAIRS,
+
+    PYRAMID_EVENT_SET_STATE,
+
+    DATA_RESET_PYRAMID_EVENT,
+    ACTION_WEEGLI_DESTROY_GATE,
+    ACTION_DESPAWN_SUMMONS,
+    INSTANCE_DATA_RESET_CAGES,
+    INSTANCE_DATA_BLY_DEATH
+};
+
+#endif

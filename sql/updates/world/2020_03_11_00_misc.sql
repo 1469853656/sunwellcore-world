@@ -1,0 +1,2 @@
+-- DB/Loot: Lost Soul will always drop Wispy Cloak https://github.com/SunwellTracker/issues/issues/3425
+UPDATE `creature_loot_template` SET `ChanceOrQuestChance` = 100 WHERE `entry` = 1531 AND `item` =  3322;

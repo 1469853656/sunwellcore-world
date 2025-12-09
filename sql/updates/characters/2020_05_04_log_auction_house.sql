@@ -1,0 +1,1 @@
+ALTER TABLE `log_auction_house` ADD COLUMN `playerName` VARCHAR(50) NOT NULL AFTER `playerGuid`;

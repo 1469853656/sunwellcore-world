@@ -1,0 +1,1 @@
+UPDATE `item_template` SET `AllowableRace`=-1, `AllowableClass` = -1, `RequiredSkillRank`=150 WHERE  `entry`=8628;

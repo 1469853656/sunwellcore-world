@@ -1,0 +1,230 @@
+/*
+REWRITTEN FROM SCRATCH BY XINEF, IT OWNS NOW!
+*/
+
+#include "ScriptMgr.h"
+#include "ScriptedCreature.h"
+#include "naxxramas.h"
+#include "Player.h"
+
+enum Says
+{
+    SAY_AGGRO = 0,
+    SAY_SLAY  = 1,
+    SAY_TAUNT = 2,
+    SAY_DEATH = 3
+};
+
+enum Spells
+{
+    SPELL_SPELL_DISRUPTION     = 29310,
+    SPELL_DECREPIT_FEVER_10    = 29998,
+    SPELL_DECREPIT_FEVER_25    = 55011,
+    SPELL_PLAGUE_CLOUD         = 29350,
+    SPELL_CUSTOM_MORTAL_STRIKE = 25646 /* !Boost only! */
+};
+
+enum Events
+{
+    EVENT_SPELL_SPELL_DISRUPTION = 1,
+    EVENT_SPELL_DECEPIT_FEVER    = 2,
+    EVENT_ERUPT_SECTION          = 3,
+    EVENT_SWITCH_PHASE           = 4,
+    EVENT_SAFETY_DANCE           = 5,
+    EVENT_BOOST_MORTAL_STRIKE    = 6 /* !Boost only! */
+};
+
+enum Misc
+{
+    PHASE_SLOW_DANCE = 0,
+    PHASE_FAST_DANCE = 1
+};
+
+class boss_heigan : public CreatureScript
+{
+public:
+    boss_heigan()
+        : CreatureScript("boss_heigan")
+    {
+    }
+
+    CreatureAI* GetAI(Creature* pCreature) const override
+    {
+        return new boss_heiganAI(pCreature);
+    }
+
+    struct boss_heiganAI : public BossAI
+    {
+        boss_heiganAI(Creature* c) : BossAI(c, EVENT_HEIGAN) { }
+
+        uint8 currentPhase;
+        uint8 currentSection;
+        bool moveRight;
+
+        void Reset() override
+        {
+            _Reset();
+            currentPhase   = 0;
+            currentSection = 3;
+            moveRight      = true;
+
+            if (GameObject* go = me->GetMap()->GetGameObject(instance->GetData64(DATA_HEIGAN_ENTER_GATE)))
+                go->SetGoState(GO_STATE_ACTIVE);
+        }
+
+        void KilledUnit(Unit* who) override
+        {
+            if (who->GetTypeId() != TYPEID_PLAYER)
+                return;
+
+            if (!urand(0, 3))
+                Talk(SAY_SLAY);
+
+            instance->SetData(DATA_IMMORTAL_FAIL, 0);
+        }
+
+        void JustDied(Unit* killer) override
+        {
+            _JustDied();
+            Talk(SAY_DEATH);
+            instance->SendEncounterUnit(ENCOUNTER_FRAME_DISENGAGE, me);
+        }
+
+        void EnterEvadeMode() override
+        {
+            BossAI::EnterEvadeMode();
+            instance->SendEncounterUnit(ENCOUNTER_FRAME_DISENGAGE, me);
+        }
+
+        void EnterCombat(Unit* who) override
+        {
+            instance->SendEncounterUnit(ENCOUNTER_FRAME_ENGAGE, me);
+            _EnterCombat();
+            me->SetHealth(me->GetMaxHealth());
+            Talk(SAY_AGGRO);
+
+            if (!Is25ManRaid())
+                me->SetLootMode(GetLootModeFor10Man(instance));
+
+            if (GameObject* go = me->GetMap()->GetGameObject(instance->GetData64(DATA_HEIGAN_ENTER_GATE)))
+                go->SetGoState(GO_STATE_READY);
+
+            StartFightPhase(PHASE_SLOW_DANCE);
+        }
+
+        void StartFightPhase(uint8 phase)
+        {
+            currentSection = 3;
+            currentPhase   = phase;
+            events.Reset();
+
+            if (phase == PHASE_SLOW_DANCE)
+            {
+                events.ScheduleEvent(EVENT_SPELL_SPELL_DISRUPTION, 0);
+                events.ScheduleEvent(EVENT_SPELL_DECEPIT_FEVER, 12000);
+                events.ScheduleEvent(EVENT_ERUPT_SECTION, 10000);
+                events.ScheduleEvent(EVENT_SWITCH_PHASE, 90000);
+
+                if (sCustomMgr->GetBoolConfig(CONFIG_NAXXRAMAS_25_BOOST_ENABLED) && me->GetMap()->Is25ManRaid())
+                    events.ScheduleEvent(EVENT_BOOST_MORTAL_STRIKE, 10000);
+            }
+            else // if (phase == PHASE_FAST_DANCE)
+            {
+                me->MonsterTextEmote("%s teleports and begins to channel a spell!", nullptr, true);
+
+                // teleport
+                float x, y, z, o;
+                me->GetHomePosition(x, y, z, o);
+                me->NearTeleportTo(x, y, z, o);
+
+                me->CastSpell(me, SPELL_PLAGUE_CLOUD, false);
+                events.ScheduleEvent(EVENT_ERUPT_SECTION, 4000);
+                events.ScheduleEvent(EVENT_SWITCH_PHASE, 45000);
+            }
+
+            events.ScheduleEvent(EVENT_SAFETY_DANCE, 5000);
+        }
+
+        bool IsInRoom(Unit const* who)
+        {
+            if (who->GetPositionX() > 2822.0f || who->GetPositionX() < 2723.0f || who->GetPositionY() > -3641.0f || who->GetPositionY() < -3736.0f)
+            {
+                if (who->GetGUID() == me->GetGUID())
+                    EnterEvadeMode();
+
+                return false;
+            }
+
+            return true;
+        }
+
+        void UpdateAI(uint32 diff) override
+        {
+            if (!IsInRoom(me))
+                return;
+
+            if (!UpdateVictim())
+                return;
+
+            events.Update(diff);
+            switch (events.ExecuteEvent())
+            {
+                case EVENT_BOOST_MORTAL_STRIKE:
+                    me->CastSpell(me->GetVictim(), SPELL_CUSTOM_MORTAL_STRIKE, false);
+                    events.Repeat(8s);
+                    break;
+                case EVENT_SPELL_SPELL_DISRUPTION:
+                    me->CastSpell(me, SPELL_SPELL_DISRUPTION, false);
+                    events.Repeat(10s);
+                    break;
+                case EVENT_SPELL_DECEPIT_FEVER:
+                    me->CastSpell(me, RAID_MODE(SPELL_DECREPIT_FEVER_10, SPELL_DECREPIT_FEVER_25), false);
+                    events.Repeat(20s);
+                    break;
+                case EVENT_SWITCH_PHASE:
+                    StartFightPhase(currentPhase == PHASE_SLOW_DANCE ? PHASE_FAST_DANCE : PHASE_SLOW_DANCE);
+                    break;
+                case EVENT_ERUPT_SECTION:
+                    instance->SetData(DATA_HEIGAN_ERUPTION, currentSection);
+                    if (currentSection == 3)
+                        moveRight = false;
+                    else if (currentSection == 0)
+                        moveRight = true;
+
+                    moveRight ? currentSection++ : currentSection--;
+
+                    if (currentPhase == PHASE_SLOW_DANCE && !urand(0, 3))
+                        Talk(SAY_TAUNT);
+
+                    events.Repeat(currentPhase == PHASE_SLOW_DANCE ? 10s : 4s);
+                    break;
+                case EVENT_SAFETY_DANCE:
+                {
+                    Map::PlayerList const& pList = me->GetMap()->GetPlayers();
+                    for (Map::PlayerList::const_iterator itr = pList.begin(); itr != pList.end(); ++itr)
+                    {
+                        if (IsInRoom(itr->GetSource()) && !itr->GetSource()->IsAlive())
+                        {
+                            events.PopEvent();
+                            instance->SetData(DATA_DANCE_FAIL, 0);
+                            instance->SetData(DATA_IMMORTAL_FAIL, 0);
+                            return;
+                        }
+                    }
+
+                    events.Repeat(5s);
+                    break;
+                }
+                default:
+                    break;
+            }
+
+            DoMeleeAttackIfReady();
+        }
+    };
+};
+
+void AddSC_boss_heigan()
+{
+    new boss_heigan();
+}

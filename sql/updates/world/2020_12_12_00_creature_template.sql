@@ -1,0 +1,1 @@
+UPDATE `creature_template` SET `flags_extra` = `flags_extra` | 0x40000000 WHERE `entry` IN (28732, 29335, 28734, 28731, 28733, 28730, 28729, 28684);

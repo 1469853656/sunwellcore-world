@@ -1,0 +1,182 @@
+
+
+#ifndef TRINITY_TIMER_H
+#define TRINITY_TIMER_H
+
+#include "Common.h"
+#include <chrono>
+
+inline uint32 getMSTime()
+{
+    static const auto ApplicationStartTime = std::chrono::high_resolution_clock::now(); 
+    return std::chrono::duration_cast<std::chrono::milliseconds>
+        (std::chrono::high_resolution_clock::now() - ApplicationStartTime).count();
+}
+
+inline uint32 getMSTimeDiff(uint32 oldMSTime, uint32 newMSTime)
+{
+    // getMSTime() have limited data range and this is case when it overflow in this tick
+    if (oldMSTime > newMSTime)
+        return (0xFFFFFFFF - oldMSTime) + newMSTime;
+    else
+        return newMSTime - oldMSTime;
+}
+
+inline uint32 GetMSTimeDiffToNow(uint32 oldMSTime)
+{
+    return getMSTimeDiff(oldMSTime, getMSTime());
+}
+
+struct IntervalTimer
+{
+public:
+    IntervalTimer()
+        : _interval(0)
+        , _current(0)
+    {
+    }
+
+    bool Update(time_t diff)
+    {
+        _current += diff;
+        if (_current < 0)
+            _current = 0;
+
+        return Passed();
+    }
+
+    bool Passed()
+    {
+        return _current >= _interval;
+    }
+
+    void Reset()
+    {
+        if (_current >= _interval)
+            _current %= _interval;
+    }
+
+    void SetCurrent(time_t current)
+    {
+        _current = current;
+    }
+
+    void SetInterval(time_t interval)
+    {
+        _interval = interval;
+    }
+
+    time_t GetInterval() const
+    {
+        return _interval;
+    }
+
+    time_t GetCurrent() const
+    {
+        return _current;
+    }
+
+private:
+    time_t _interval;
+    time_t _current;
+};
+
+struct TimeTracker
+{
+public:
+    TimeTracker(time_t expiry)
+        : i_expiryTime(expiry)
+    {
+    }
+
+    void Update(time_t diff)
+    {
+        i_expiryTime -= diff;
+    }
+
+    bool Passed() const
+    {
+        return i_expiryTime <= 0;
+    }
+
+    void Reset(time_t interval)
+    {
+        i_expiryTime = interval;
+    }
+
+    time_t GetExpiry() const
+    {
+        return i_expiryTime;
+    }
+
+private:
+    time_t i_expiryTime;
+};
+
+struct TimeTrackerSmall
+{
+public:
+    TimeTrackerSmall(uint32 expiry = 0)
+        : i_expiryTime(expiry)
+    {
+    }
+
+    bool Update(int32 diff)
+    {
+        return (i_expiryTime -= diff) <= 0;
+    }
+
+    bool Passed() const
+    {
+        return i_expiryTime <= 0;
+    }
+
+    void Reset(uint32 interval)
+    {
+        i_expiryTime = interval;
+    }
+
+    int32 GetExpiry() const
+    {
+        return i_expiryTime;
+    }
+
+private:
+    int32 i_expiryTime;
+};
+
+struct PeriodicTimer
+{
+public:
+    PeriodicTimer(int32 period, int32 start_time)
+        : i_period(period)
+        , i_expireTime(start_time)
+    {
+    }
+
+    bool Update(const uint32 diff)
+    {
+        if ((i_expireTime -= diff) > 0)
+            return false;
+
+        i_expireTime += i_period > int32(diff) ? i_period : diff;
+        return true;
+    }
+
+    void SetPeriodic(int32 period, int32 start_time)
+    {
+        i_expireTime = start_time;
+        i_period     = period;
+    }
+
+    // Tracker interface
+    void TUpdate(int32 diff) { i_expireTime -= diff; }
+    bool TPassed() const { return i_expireTime <= 0; }
+    void TReset(int32 diff, int32 period) { i_expireTime += period > diff ? period : diff; }
+
+private:
+    int32 i_period;
+    int32 i_expireTime;
+};
+
+#endif

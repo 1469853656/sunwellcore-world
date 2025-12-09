@@ -1,0 +1,2 @@
+ALTER TABLE `instance`
+	ADD COLUMN `CustomDifficultyID` INT UNSIGNED NOT NULL DEFAULT '0' AFTER `data`;

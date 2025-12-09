@@ -1,0 +1,1 @@
+UPDATE `quest_template` SET `RequiredMinRepValue` = 3000 WHERE `Id` IN (24819, 24820, 24821, 24822, 25247);

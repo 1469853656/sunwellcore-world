@@ -1,0 +1,8 @@
+CREATE TABLE IF NOT EXISTS `web_commands` (
+  `Id` int(11) NOT NULL AUTO_INCREMENT,
+  `Command` varchar(255) CHARACTER SET utf8 DEFAULT NULL,
+  `Target` int(11) DEFAULT NULL,
+  `Source` int(11) DEFAULT NULL,
+  `Access` int(11) DEFAULT NULL,
+  PRIMARY KEY (`Id`)
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8;

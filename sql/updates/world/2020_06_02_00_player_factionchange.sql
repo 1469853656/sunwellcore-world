@@ -1,0 +1,2 @@
+UPDATE `player_factionchange_spells` SET `alliance_id`=16056, `alliance_comment`='Ancient Frostsaber' WHERE  `alliance_id`=17460 AND `horde_id`=17450;
+UPDATE `player_factionchange_items` SET `alliance_id`=12302, `alliance_comment`='Reins of the Ancient Frostsaber' WHERE  `alliance_id`=13329 AND `horde_id`=13317;

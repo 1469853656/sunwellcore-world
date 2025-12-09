@@ -1,0 +1,234 @@
+#################################################
+# Trinity Core Custom Server configuration file #
+#################################################
+[worldcustom]
+
+### RACIAL SHIFT
+#
+#    RacialShift.Enable
+#        Description: Enables Racial Shift feature. Allows to change racial spells without changing the race.
+#        Default:     1
+
+RacialShift.Enable = 1
+
+#
+#    RacialShift.EnabledAllianceMask
+#        Description: Allows to enable/disable certain racials for Racial Shift when playing alliance characters. 
+#        Default:     3582 (All races)
+
+RacialShift.EnabledAllianceMask = 3582
+
+#
+#    RacialShift.EnabledHordeMask
+#        Description: Allows to enable/disable certain racials for Racial Shift when playing horde characters. 
+#        Default:     3582 (All races)
+
+RacialShift.EnabledHordeMask = 3582
+
+### PREMIUM STORE
+#
+#    PremiumStore.Enable
+#        Description: Enables Premium Store order processing feature.
+#        Default:     1
+
+PremiumStore.Enable = 1
+
+#
+#    PremiumStore.Process.ServicePack
+#        Description: Enables Premium Store service pack processing.
+#        Default:     1
+
+PremiumStore.Process.ServicePack = 1
+
+#
+#    PremiumStore.UpdateTime
+#        Description: Specifies Premium Store order batch processing time (in seconds).
+#        Default:     60
+
+PremiumStore.UpdateTime = 60
+
+#
+#    PremiumStore.Threads
+#        Description: Specifies Premium Store thread amount for order processing.
+#        Default:     2
+
+PremiumStore.Threads = 2
+
+### Autolearn
+#
+#    AutoLearn.Enable
+#        Description: Enables auto learning spells on levelup.
+#        Default:     1
+
+AutoLearn.Enable = 1
+
+### Drop Rate
+#
+#    QuestLoot.DropChance
+#        Description: Specifies quest item drop chance on azeroth and outland.
+#        Default:     100
+
+QuestLoot.DropChance = 100
+
+### CROSSFACTION
+#
+# Random Dungeon Finder
+CrossFaction.RDF.MinLVL = 15
+CrossFaction.RDF.MaxLVL = 79
+CrossFaction.RDF.Enable = 1
+# Battlegrounds
+CrossFaction.BG.Enable = 1
+CrossFaction.BG.MinLVL = 80
+CrossFaction.BG.MaxLVL = 85
+# Miscellaneous
+CrossFaction.Mail.Enable = 1
+CrossFaction.Auction.Enable = 1
+CrossFaction.WHO.Enable = 1
+CrossFaction.Channels.Enable = 1
+CrossFaction.Group.Enable = 1
+CrossFaction.Item.Enable = 1
+CrossFaction.Trade.Enable = 1
+CrossFaction.Chat.Enable = 1
+CrossFaction.Guild.Enable = 1
+CrossFaction.ArenaTeam.Enable = 1
+CrossFaction.HKHonorGain.Enable = 1
+
+### Multispec
+#
+Multispec.Enable = 1
+Multispec.Free.Enable = 1
+
+### Dynamic Spawn
+#
+#    DynamicSpawn.Enable
+#        Description: Enables dynamic respawn scaling based on player amount in zone.
+#        Default:     1
+
+DynamicSpawn.Enable = 1
+
+#
+#    DynamicSpawn.CorpseDelay.Enable
+#        Description: Enables dynamic respawn scaling for corpse delay for creatures.
+#        Default:     1
+
+DynamicSpawn.CorpseDelay.Enable = 1
+
+#
+#    DynamicSpawn.Rate.Creature
+#        Description: Specifies how much creature respawn time will reduce for one player in zone (for example: if 5 is set, then for 1 player it's 95%, for 2 it's 90%...).
+#        Default:     5
+
+DynamicSpawn.Rate.Creature = 5
+
+#
+#    DynamicSpawn.Rate.CreatureCorpseDelay
+#        Description: Specifies how much creature corpse decay time will reduce for one player in zone (for example: if 5 is set, then for 1 player it's 95%, for 2 it's 90%...).
+#	 	NOTE: Works only when DynamicSpawn.CorpseDelay.Enable is set to 1.
+#        Default:     5
+
+DynamicSpawn.Rate.CreatureCorpseDelay = 5
+
+#
+#    DynamicSpawn.MinimalTime.Creature
+#        Description: Respawn time for creatures cannot fall below this value (in seconds).
+#        Default:     20
+
+DynamicSpawn.MinimalTime.Creature = 20
+
+#
+#    DynamicSpawn.MinimalTime.GameObject
+#        Description: Respawn time for gameobjects cannot fall below this value (in seconds).
+#        Default:     15
+
+DynamicSpawn.MinimalTime.GameObject = 15
+
+#
+#    DynamicSpawn.MinimalTime.CreatureCorpseDelay
+#        Description: Creature corpse delay cannot fall below this value (in seconds).
+#        Default:     20
+
+DynamicSpawn.MinimalTime.CreatureCorpseDelay = 20
+
+### Name Reservation
+#
+#    NameReservation.Enable
+#        Description: Enables or disables Names Reservation.
+#                     While enabled players may only create characters and
+#                     they are kicked when trying login to world.
+#        Default:     0 - (Disabled)
+#                     1 - (Enabled)
+
+NameReservation.Enable = 0
+
+#
+#    NameReservation.Enable
+#        Description: Counter of characters which may be created when NameReservation is enabled
+#        Default:     1 - Players may create only two characters and make reservation of two names.
+
+NameReservation.Limit = 1
+
+### Channels
+#
+#    Channels.Allow.Owner
+#        Description: Allow to set owners on custom channels
+#        Default:     0 - (Disabled)
+#                     1 - (Enabled)
+
+Channels.Allow.Owner = 0
+
+#
+#    Channels.Allow.Password
+#        Description: Allow to set password on custom channels
+#        Default:     0 - (Disabled)
+#                     1 - (Enabled)
+
+Channels.Allow.Password = 0
+
+#
+#    Channels.Allow.Notification
+#        Description: Allow to send notifications on custom channels
+#        Default:     0 - (Disabled)
+#                     1 - (Enabled)
+
+Channels.Allow.Notification = 0
+
+#
+#    Channels.Allow.Notification
+#        Description: Allow speak dealy on custom channels
+#        Default:     0 - (Disabled)
+#                     1 - (Enabled)
+
+Channels.Allow.SpeakDelay = 0
+
+### History
+#
+#
+#	MuteHistory.Enable
+#     Description: Every log of mute command is saving to database.
+#     Default:     1 - (Enabled)
+#                  1 - (Disabled)
+
+MuteHistory.Enable = 1
+
+### REALM PHASE
+#
+#    Realm.Phase
+#        Description: Enables specific phase at the realm
+#        Default:     2 - Phase Server Released
+#        0 - Realm Phase PTR, 1 - Realm Phase Launch
+
+Realm.Phase = 2
+
+### Miscellaneous
+
+ServerInfo.DisplayRevision = 1
+ServerInfo.DisplayActive = 1
+
+### Population Booster
+PopulationBooster.Enable = 1
+PopulationBooster.Fake.Who.Class = 1
+PopulationBooster.Fake.Who.Race = 1
+PopulationBooster.Fake.Who.Level = 1
+PopulationBooster.Fake.Who.Guild = 0
+PopulationBooster.Value = 0.2
+PopulationBooster.Fake.Who.Min.Level = 1

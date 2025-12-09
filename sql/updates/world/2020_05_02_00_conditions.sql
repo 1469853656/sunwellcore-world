@@ -1,0 +1,2 @@
+DELETE FROM `conditions` WHERE `SourceTypeOrReferenceId` = 17 AND `SourceEntry` = 16613;
+INSERT INTO `conditions` (`SourceTypeOrReferenceId`, `SourceEntry`, `ConditionTypeOrReference`, `ConditionValue1`, `ConditionValue2`, `NegativeCondition`, `Comment`) VALUES (17, 16613, 29, 10717, 15, 1, "Spell 'Displacing Temporal Rift' cannot be cast if nearby NPC 'Temporal Parasite' is alive");
